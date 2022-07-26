@@ -4,6 +4,7 @@ import { parseUnits } from 'ethers/lib/utils';
 
 import {Connect} from "./utils"
 import type {ButtonProps, SpanProps} from "./utils"
+import Button from '@mui/material/Button';
 
 let connect: Connect | undefined = undefined;
 let provider: ethers.providers.Web3Provider;
@@ -34,10 +35,8 @@ function ConnectAccount(props: ButtonProps): JSX.Element {
 
     return (
         <div>
-            <button {...htmlButtonProps} onClick={clickHandler}>{display}</button>
-            <div>
-                <span id="userAccount">{`User account: `}</span>
-            </div>
+            <Button variant="contained" onClick={clickHandler}>{display}</Button>
+            <span id="userAccount">{`User account: `}</span>
         </div>
     )
 }

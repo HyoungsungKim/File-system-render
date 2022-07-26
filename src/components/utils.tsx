@@ -32,5 +32,6 @@ class Connect {
     }
 }
 
+
 export {Connect}
 export type {ButtonProps, SpanProps}
