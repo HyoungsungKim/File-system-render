@@ -32,6 +32,28 @@ class Connect {
     }
 }
 
+// eth_getEncryptionPublicKey will be deprecated 
+function encryptAddress(address: string): Promise<string> {
+    return window.ethereum.request({
+        method: 'eth_getEncryptionPublicKey',
+        params: [address]
+    })
 
-export {Connect}
+    /*
+    .then((encryptionPublicKey: string) => {
+        return encryptionPublicKey
+    })
+    .catch((error: any) => {
+        if (error.code === 4001) {
+            console.log("we cannot encrypt anything without the key")
+            return "4001";
+        } else {
+            console.log(error)
+            return error
+        }
+    })
+    */
+}
+
+export {Connect, encryptAddress}
 export type {ButtonProps, SpanProps}

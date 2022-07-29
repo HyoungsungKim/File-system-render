@@ -1,75 +1,84 @@
 import React, {useState} from 'react';
-import axios, { AxiosResponse } from 'axios';
 import { Connect } from './utils';
-import { ethers } from 'ethers'
-import type {ButtonProps, SpanProps} from './utils';
+
 import { Alert, Button } from '@mui/material';
+import type {ButtonProps, SpanProps} from './utils';
+
 
 let connect: Connect | undefined = undefined;
-
 function FileUpload(props: ButtonProps): JSX.Element {
     let {display, onClick, ...htmlButtonProps}: ButtonProps = props;
     connect = new Connect(window.ethereum);
 
     const [isSelected, setIsSelected] = useState(false)
-    const [selectedFile, setSelectedFile] = useState();
+    const [selectedFile, setSelectedFile] = useState<File>();
 
-    const changeHandler = (event: any) => {
-        let file = event.target.files[0]
-        setSelectedFile(file)
-        setIsSelected(true)
+    const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let file = event.target.files
+        if (file) {
+            setSelectedFile(file[0])
+            setIsSelected(true)
+        }
     };
     
-    /*
-     go-gin router connection test
-     go-gin file server: 172.32.0.1:9010
-
-     API for DB server
-    const handleSubmission = () => {
-        fetch(`/ping`).then((response) => response.json())
-        .then((data) => console.log(data))
-    }
-    
-    API for file server
-    const submissionHandler = () => {
-        axios
-        .get('http://172.32.0.1:9010/ping')
-        .then((response: AxiosResponse) => console.log(response))
-    }
-    */
-
-    const submissionHandler = (address: string) => {
+    const submissionHandler = async (connect: Connect | undefined) => {
         const formData = new FormData()
+        const signer = connect!.getSigner()
+        console.log(signer)
+
+        let address = await signer!.getAddress()
+        let signature = await signer!.signMessage(address)
+
+        console.log(signature)
+
         if (isSelected) {
             formData.append('file', selectedFile!)
             console.log(formData)
-
-            fetch("http://172.32.0.1:9010/upload/" + address, {
+            
+            let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
                 method: "POST",
-                /*
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-                */
                 body: formData,
             })
-            .then((response) => console.log(response))
+            console.log(response)
 
-            console.log(formData.get('file'))
+            // TODO: Implement write data to DB with file hash
+            let POSTbody = JSON.stringify({
+                account_id: address,
+                file_name:  selectedFile!.name,
+                signature: signature,
+                type:       selectedFile!.type,
+                URI:        address + "/" + selectedFile!.name,
+                size:       selectedFile!.size,
+            })
+
+            let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
+                method: "POST",
+                body: POSTbody,
+            })
+            console.log(POSTbody)
+            console.log(responseFromDB)
         }
     }
 
-    if (connect !== undefined && connect.getSigner() !== undefined) {
+    if (connect !== undefined) {
         return (
             <div>
-                <Button variant="contained" component="label"> Upload file
-                    <input type="file" name="file" hidden onChange={changeHandler} />
-                </Button>
                 <div>
+                    <Button variant="contained" component="label" > Upload file
+                        <input type="file" name="file" hidden onChange={changeHandler} />
+                    </Button>
+                    {isSelected ? (
+                            <div>
+                                <p>Filename: {selectedFile!.name}</p>
+                                <p>FIletype: {selectedFile!.type}</p>
+                                <p>Size in bytes: {selectedFile!.size}</p>
+                            </div>
+                        ) : (
+                            <p>Select a file to upload</p>
+                        )}
                     <Button variant="contained" type="submit" onClick={
-                            async () => connect!.getSigner()?.getAddress()
-                            .then((address) => submissionHandler(address))                      
-                        }>{display}
+                        () => submissionHandler(connect)
+                    }>{display}
                     </Button>                
                 </div>
             </div>
