@@ -19,7 +19,7 @@ function Form(labelSrc: string, elementId: string|undefined = undefined, value: 
 }
 
 function ERC721Handler(props: ButtonProps): JSX.Element {
-    let {display, onClick, ...htmlButtonProps}: ButtonProps = props;
+    let {title, onClick, ...htmlButtonProps}: ButtonProps = props;
     connect = new Connect(window.ethereum)
     
     const abi = ERC721ContractInfo.abi;

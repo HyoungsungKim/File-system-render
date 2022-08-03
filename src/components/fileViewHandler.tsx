@@ -7,19 +7,27 @@ import { Container } from '@mui/material';
 import { Typography } from '@mui/material';
 import {Grid} from '@mui/material';
 
-import type {ButtonProps, SpanProps} from './utils';
+interface ViewProps {
+    title: string;
+}
 
 let connect: Connect
 const cards = [0, 1, 2, 3, 4]
 
 function displaySrc(srcURIs: string[] | undefined): JSX.Element {
     console.log(srcURIs)
+
     if (srcURIs == undefined) {
         return (
             <Alert severity="info">{"There is no file to show"}</Alert>
         )
     } else {
-        console.log("http://172.32.0.1:9010/view/" + srcURIs[0])
+        let cards : number[] = []
+        for (let i = 0; i < srcURIs.length; i++) {
+            cards.push(i)
+        }
+
+        console.log("http://172.32.0.1:9010/collection/" + srcURIs[0])
         return (
             <Container sx={{ py: 8 }} maxWidth="md">
             {/* End hero unit */}
@@ -33,10 +41,10 @@ function displaySrc(srcURIs: string[] | undefined): JSX.Element {
                                     // 16:9
                                     pt: '56.25%',
                                 }}
-                                image={"http://172.32.0.1:9010/view/" + srcURIs[card]} //"https://source.unsplash.com/random"
+                                image={"http://172.32.0.1:9010/collection/" + srcURIs[card]} //"https://source.unsplash.com/random"
                                 alt="random"
                             />
-                            <CardContent sx={{ flexGrow: 1 }}>
+                           {/* <CardContent sx={{ flexGrow: 1 }}>
                             <Typography gutterBottom variant="h5" component="h2">
                                 Heading
                             </Typography>
@@ -49,6 +57,7 @@ function displaySrc(srcURIs: string[] | undefined): JSX.Element {
                                 <Button size="small">View</Button>
                                 <Button size="small">Edit</Button>
                             </CardActions>
+                            */}
                         </Card>
                     </Grid>
                 ))}
@@ -58,8 +67,8 @@ function displaySrc(srcURIs: string[] | undefined): JSX.Element {
     }
 }
 
-function ViewFiles(props: ButtonProps): JSX.Element {
-    let {display, onClick, ...htmlButtonProps}: ButtonProps = props;
+function ViewFiles(props: ViewProps): JSX.Element {
+    let {title,}: ViewProps = props;
 
     let jsonResponse: any
     let [fileURIs, setFileURIs]  = useState<string[]>()
@@ -71,7 +80,7 @@ function ViewFiles(props: ButtonProps): JSX.Element {
         const signer = connect.getSigner();
         let address = await signer!.getAddress();
 
-        let response = await fetch("http://172.30.0.1:8090/view/" + address, {
+        let response = await fetch("http://172.30.0.1:8090/collection/" + address, {
             method: "GET",
         })
         jsonResponse = await response.json()
@@ -94,7 +103,7 @@ function ViewFiles(props: ButtonProps): JSX.Element {
         <div>
             <Button variant="contained" onClick={
                 () => viewHandler(connect)
-            }>{display}
+            }>{title}
             </Button>
             { isSigValid ? (
                 <div>
