@@ -10,11 +10,14 @@ import Chip from '@mui/material/Chip';
 let connect: Connect | undefined = undefined;
 let provider: ethers.providers.Web3Provider;
 
-function ConnectAccount(props: ButtonProps): JSX.Element {
-    let {title, }: ButtonProps = props;
-    let userAccountComponent: HTMLSpanElement;
+interface ConnectProps {
+    isConnected: boolean;
+    setIsConnected: React.Dispatch<React.SetStateAction<boolean>>
+}
 
-    const [isConnected, setIsConnected] = useState(false)
+function ConnectAccount(props: ConnectProps): JSX.Element {
+
+    const {isConnected, setIsConnected} = props
     const [userAccount, setUsetAccount] = useState<string>()
 
     const connectMetamask = async () => {

@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { ethers } from 'ethers';
-import {ListItem, ListItemIcon, ListItemText} from '@mui/material';
-import {
-    Link as RouterLink,
-    LinkProps as RouterLinkProps,
-    MemoryRouter,
-  } from 'react-router-dom';
-import { StaticRouter} from 'react-router-dom/server'
+import { ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import Link from 'next/link';
 
 declare global {
     interface Window {
@@ -19,7 +14,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 interface SpanProps extends React.HTMLAttributes<HTMLSpanElement> {
-    title: string;   
+    title: string;
 }
 
 interface ListItemLinkProps {
@@ -69,41 +64,21 @@ function encryptAddress(address: string): Promise<string> {
     */
 }
 
-function Router(props: { children: React.ReactNode}) {
-    const {children} = props;
-    if (typeof window == 'undefined') {
-        return <StaticRouter location="/">{children}</StaticRouter>
-    }
-
-    return (
-        <MemoryRouter initialEntries={['/']} initialIndex={0}>
-            {children}
-        </MemoryRouter>
-    )
-}
 
 function ListItemLink(props: ListItemLinkProps) {
     const { icon, primary, to } = props;
-    const renderLink = React.useMemo(
-        () => 
-        React.forwardRef<HTMLAnchorElement, Omit<RouterLinkProps, 'to'>>(function Link(
-            itemProps,
-            ref,
-        ) {
-            return <RouterLink to={to} ref={ref} {...itemProps} role={undefined} />;
-        }),
-        [to],
-    )
 
     return (
         <li>
-          <ListItem button component={renderLink}>
-            {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
-            <ListItemText primary={primary} />
-          </ListItem>
+            <Link href={to} >
+                <ListItem button >
+                    {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
+                    <ListItemText primary={primary} />
+                </ListItem>
+            </Link>
         </li>
-      );
+    );
 }
 
-export {Connect, Router, ListItemLink, encryptAddress}
-export type {ButtonProps, SpanProps}
+export { Connect, ListItemLink, encryptAddress }
+export type { ButtonProps, SpanProps }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Connect } from './utils';
 import { Card, CardActions, CardContent, CardMedia } from '@mui/material';
@@ -16,7 +16,9 @@ interface UploadProps {
 
 function FileUpload(props: UploadProps): JSX.Element {
     let { title, setFile }: UploadProps = props;
-    connect = new Connect(window.ethereum);
+    useEffect(() => {
+        connect = new Connect(window.ethereum);
+    }, [])
 
     const [isSelected, setIsSelected] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File>();
@@ -147,6 +149,4 @@ const UploadLayout = (): JSX.Element => {
     )
 }
 
-
-
-export { UploadLayout }
+export {UploadLayout}

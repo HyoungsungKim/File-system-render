@@ -1,10 +1,9 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { Connect } from './utils';
 
 import { Alert, Button } from '@mui/material';
 import { Card, CardActions, CardContent, CardMedia} from '@mui/material';
 import { Container } from '@mui/material';
-import { Typography } from '@mui/material';
 import {Grid} from '@mui/material';
 
 interface ViewProps {
@@ -12,7 +11,6 @@ interface ViewProps {
 }
 
 let connect: Connect
-const cards = [0, 1, 2, 3, 4]
 
 function displaySrc(srcURIs: string[] | undefined): JSX.Element {
     console.log(srcURIs)
@@ -74,7 +72,9 @@ function ViewFiles(props: ViewProps): JSX.Element {
     let [fileURIs, setFileURIs]  = useState<string[]>()
     let [isSigValid, setIsSigValid] = useState(false)
 
-    connect = new Connect(window.ethereum);
+    useEffect(() => {
+        connect = new Connect(window.ethereum);
+    }, [])
 
     const viewHandler = async (connect: Connect) => {
         const signer = connect.getSigner();
