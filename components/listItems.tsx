@@ -13,9 +13,10 @@ import { ListItemLink } from './utils'
 
 export const mainListItems = (
     <React.Fragment>
+        <ListItemLink to="/uploadandmint" primary="UploadAndMint" icon={<AddPhotoAlternateIcon />} />
         <ListItemLink to="/upload" primary="Upload" icon={<AddPhotoAlternateIcon />} />
         <ListItemLink to="/collection" primary="Collection" icon={<CollectionsIcon />} />
-        <ListItemLink to="/reports" primary="Reports" icon={<BarChartIcon />} />
+        <ListItemLink to="/mint" primary="Mint NFT" icon={<BarChartIcon />} />
         <ListItemLink to="/integrations" primary="Integrations" icon={<LayersIcon />} />
     </React.Fragment>
 );

@@ -1,44 +1,54 @@
+import React, { useState, useEffect } from 'react';
 import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
 import ERC721Metdata from './contract/ERC721/testdata.json';
+import TextField from '@mui/material/TextField';
+import { Alert, Box, Button, MenuItem } from '@mui/material';
 import { Connect } from './utils';
-import {Contract, ContractFactory} from 'ethers';
-import type {ButtonProps, SpanProps} from './utils';
+import { Contract, ContractFactory } from 'ethers';
 
 let connect: Connect | undefined = undefined
+const abi = ERC721ContractInfo.abi;
+const bytecode = ERC721ContractInfo.bytecode;
+
 const admin = "0x6bB4353b050CF2D36461ae2dfA9e4a78C098F736"
 
-function Form(labelSrc: string, elementId: string|undefined = undefined, value: string|undefined = undefined): JSX.Element {
-    return (
-        <form>
-            <label>
-                {labelSrc}:<br />
-                <input id={elementId} type="text" defaultValue={value}/>
-            </label>
-        </form>
-    )
+interface MintProps {
+    title: string
 }
 
-function ERC721Handler(props: ButtonProps): JSX.Element {
-    let {title, onClick, ...htmlButtonProps}: ButtonProps = props;
-    connect = new Connect(window.ethereum)
-    
-    const abi = ERC721ContractInfo.abi;
-    const bytecode = ERC721ContractInfo.bytecode;
+interface URIItem {
+    URIitem: string
+}
 
-    let statusMonitor: HTMLSpanElement;
-    let sendTokenButton: HTMLButtonElement;
-    
-    let URIInput: HTMLInputElement;
-    let nameInput: HTMLInputElement;
-    let symbolInput: HTMLInputElement;
-    let toAddressInput: HTMLInputElement;
+function ERC721Handler(props: MintProps): JSX.Element {
+    let { title, } = props;
+    let signer: any
 
-    let contract: Contract;
+    useEffect(() => {
+        connect = new Connect(window.ethereum)
+        signer = connect.getSigner();
+    }, [])
 
-    let addressMap: {[key: string]: number[]} = {};
+    const [accountVerification, setAccountVerification] = useState(false)
+    const [targetURI, setTargetURI] = useState<string>("Please load collection first")
+    const [URIList, setURIList] = useState<URIItem[]>([{
+        URIitem: "Please load collection first"
+    }])
+    const handleSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setTargetURI(event.target.value)
+    }
 
+
+    /*
+      TODO: Load URI From db and convert to URIItem[]
+        if (accountVerification) {
+            ...load URIItem list from DB
+        }
+    */
+
+
+    /*
     async function deployButtonHandler() {
-        let signer = connect?.getSigner();
         const factory = new ContractFactory(abi, bytecode, signer);        
         statusMonitor = document.getElementById("NFTstatus") as HTMLSpanElement;
         sendTokenButton =  document.getElementById("NFTsendTokenButton") as HTMLButtonElement;
@@ -66,54 +76,82 @@ function ERC721Handler(props: ButtonProps): JSX.Element {
             statusMonitor.innerHTML = `Deploy failed, ${(err as Error).message}`;
         }
     }
+    */
 
     async function mintERC721() {
         try {
-            const URI = URIInput.value;
-            const toAddress = toAddressInput.value;
-            
+            let contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, connect?.getSigner());
+            //contract.attach("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83")
+
+            //const URI = URIInput.value;
+            const URI = "Test URI"
+            const toAddress = await signer!.getAddress()
+
             const mintingResult = await contract.mintNFT(toAddress, URI)
             mintingResult.wait();
-            statusMonitor.innerHTML = `Minting Success`;
             let NFTId: any;
 
-            contract.on("Transfer", (from, to, tokenId) => {        
+            contract.on("Transfer", (from, to, tokenId) => {
                 console.log("From:", from);
-                console.log("To:",to);
+                console.log("To:", to);
                 console.log("TokenId:", tokenId);
-
-                if (addressMap[toAddress]) {
-                    addressMap[toAddress].push(tokenId);
-                } else {
-                    addressMap[toAddress] = [tokenId];
-                } 
-
-                console.log(addressMap[toAddress]);
             })
-        } catch(err) {
+        } catch (err) {
             console.error(err);
-            statusMonitor.innerHTML = `Minting failed, ${(err as Error).message}`;
+            console.log((err as Error).message)
+            //statusMonitor.innerHTML = `Minting failed, ${(err as Error).message}`;
         }
     }
 
     return (
-        <div>
-            <span id="NFTstatus">Click deploy</span><br />            
+        <Box
+            component="form"
+            sx={{
+                '& .MuiTextField-root': { m: 1, width: '25ch' },
+            }}
+            noValidate
+            autoComplete="off"
+        >
             <div>
+                {/*
                 <button {...htmlButtonProps} onClick={deployButtonHandler}>Deploy(Minting token)</button>
                 <div>
                     {Form("Name", "NFTname")}
                     {Form("Symbol", "NFTsymbol")}
                 </div><br />
+                */}
 
-                <button {...htmlButtonProps} id="NFTsendTokenButton" onClick={mintERC721}>Mint token</button>
+                {
+                    /*
+                    TODO: Verify account and Load collection
+                    <Button variant="contained" onClick={() => 
+                        () => loadCollection()...
+                    }>{"Load collection"}
+                    </Button>
+                    */
+                }
+                <Button variant="contained" onClick={
+                    () => mintERC721()
+                }>{title}
+                </Button>
                 <div>
-                    {Form("URI", "URI")}
-                    {Form("Mint To", "NFTtoAddress")}
+                    <TextField
+                        id="URI"
+                        select
+                        label="URI"
+                        value={targetURI}
+                        onChange={handleSelection}
+                    >
+                        {URIList.map((URI) => (
+                            <MenuItem key={URI.URIitem} value={URI.URIitem}>
+                                {URI.URIitem}
+                            </MenuItem>
+                        ))}
+                    </TextField>
                 </div>
             </div>
-        </div>
+        </Box>
     )
 }
 
-export {ERC721Handler}
+export { ERC721Handler }

@@ -3,9 +3,7 @@ import { ViewFiles } from '../../components/fileViewHandler';
 
 export default function ViewCollection() {
     return(
-        <DashboardContent >
-            <ViewFiles title="Open collection"/>
-        </DashboardContent>
+        <ViewFiles title="Open collection"/>
     )
 }
 
