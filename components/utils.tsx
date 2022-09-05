@@ -9,18 +9,21 @@ declare global {
     }
 }
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    title: string;
-}
-
-interface SpanProps extends React.HTMLAttributes<HTMLSpanElement> {
-    title: string;
-}
-
 interface ListItemLinkProps {
     icon?: React.ReactElement;
     primary: string;
     to: string;
+}
+
+interface Attribution {
+    copyright: string;
+}
+
+interface NFTMetaData {
+    name: string;
+    image: string; // It denotes URI
+    unlockableContent: boolean;
+    attribution: Attribution | undefined;
 }
 
 class Connect {
@@ -81,4 +84,4 @@ function ListItemLink(props: ListItemLinkProps) {
 }
 
 export { Connect, ListItemLink, encryptAddress }
-export type { ButtonProps, SpanProps }
+export type { Attribution, NFTMetaData }

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Contract, ContractFactory } from 'ethers';
 
 import { Connect } from './utils';
+import type { Attribution, NFTMetaData} from './utils';
+
 import { Alert, Button, Card, CardActions, CardContent, CardMedia } from '@mui/material';
 import {TextField, Typography, MenuItem, Switch, FormControlLabel} from '@mui/material';
 import {Radio, RadioGroup, FormControl, FormLabel} from '@mui/material';
@@ -53,6 +55,17 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const [unlockableContent, isUnlockableContent] = useState(false)
     const [targetURI, setTargetURI] = useState<string>("Please load collection first")
+
+    const [title, setTitle] = useState<string | undefined>(undefined) 
+    const [copyright, setCopyright] = useState<string>("CC BY") 
+
+    const textFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setTitle(event.target.value);
+    }
+
+    const radioButtonHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setCopyright(event.target.value)
+    }
 
     // Select file and change states
     const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,9 +123,26 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
+            const signer = connect!.getSigner()
+            let address = await signer!.getAddress()
+
             console.log(unlockableContent)
             //await uploadHandler(connect)
             //await mintERC721(connect)
+
+            let nftMetaData: NFTMetaData = {
+                name: title ? title : "undefined",
+                image: address + "/" + selectedFile!.name,
+                unlockableContent: unlockableContent,
+                attribution: unlockableContent ? undefined : {
+                    copyright: copyright,
+                }
+            }
+
+            console.log(nftMetaData)
+            console.log(JSON.stringify(nftMetaData))
+            console.log(nftMetaData.attribution)
+
         } catch (err) {
             console.error(err);
             console.log((err as Error).message)
@@ -150,6 +180,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                                     aria-labelledby="demo-radio-buttons-group-label"
                                     defaultValue="CC BY"
                                     name="radio-buttons-group"
+                                    onChange={radioButtonHandler}
                                 >
                                     <FormControlLabel value="CC BY" disabled={unlockableContent} control={<Radio />} label="CC BY" />
                                     <FormControlLabel value="CC BY-NC" disabled={unlockableContent} control={<Radio />} label="CC BY-NC" />
@@ -159,6 +190,10 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                                     <FormControlLabel value="CC BY-NC-ND" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-ND" />
                                 </RadioGroup>
                             </FormControl>
+                        </div>
+
+                        <div>
+                            <TextField id="NFT-title" label="Title" variant="standard" onChange={textFieldHandler} />
                         </div>
                     </div>
                 ) : (
@@ -173,23 +208,25 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
 const UploadAndMintLayout = (): JSX.Element => {
     const [file, setFile] = useState<File | undefined>(undefined)
+
     return (
         <Grid container spacing={3}>
             {/* Chart */}
             <Grid item xs={12} md={8} lg={9}>
-                <Paper
-                    sx={{
+                <Paper sx={{
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
-                        height: 500,
+                        height: '100%',
                     }}
                 >
                     {file ? (
-                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', margin: "auto",}} >
+                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', margin:1}} >
                             <CardMedia
                                 component="img"
                                 sx={{
+                                    height: 500,
+                                    objectFit: "contain",
                                     margin: "auto",
                                 }}
                                 image={URL.createObjectURL(file)}
@@ -209,7 +246,7 @@ const UploadAndMintLayout = (): JSX.Element => {
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
-                        height: 500,
+                        height: 600,
                     }}
                 >
                     <UploadAndMint setFile={setFile} />
