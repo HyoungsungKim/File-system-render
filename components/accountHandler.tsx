@@ -3,7 +3,6 @@ import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';  
 
 import {Connect} from "./utils"
-import type {ButtonProps, SpanProps} from "./utils"
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 

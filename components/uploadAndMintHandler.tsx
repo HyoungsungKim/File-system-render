@@ -20,7 +20,7 @@ interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
 }
 
-const mintERC721 = async (connect: Connect | undefined) => {
+const mintERC721 = async (connect: Connect | undefined, uri: string) => {
     const abi = ERC721ContractInfo.abi;
     const bytecode = ERC721ContractInfo.bytecode;
     const signer = connect!.getSigner();
@@ -29,7 +29,7 @@ const mintERC721 = async (connect: Connect | undefined) => {
     //contract.attach("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83")
 
     //const URI = URIInput.value;
-    const URI = "Test URI"
+    const URI = uri
     const toAddress = await signer!.getAddress()
 
     const mintingResult = await contract.mintNFT(toAddress, URI)
@@ -124,11 +124,13 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
             const signer = connect!.getSigner()
+            const formData = new FormData()
             let address = await signer!.getAddress()
+            const uri = selectedFile!.name + ".metadata.json"
 
             console.log(unlockableContent)
-            //await uploadHandler(connect)
-            //await mintERC721(connect)
+            await uploadHandler(connect)
+            //await mintERC721(connect, uri)
 
             let nftMetaData: NFTMetaData = {
                 name: title ? title : "undefined",
@@ -139,9 +141,21 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 }
             }
 
+            let metadataBlob = new Blob([JSON.stringify(nftMetaData, null, 2)], {type: 'application/json'})
+            let metadataFile = new File([metadataBlob], uri)
+            
+            formData.append('file', metadataFile)
+
+            let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+                method: "POST",
+                body: formData,
+            })
+           
             console.log(nftMetaData)
             console.log(JSON.stringify(nftMetaData))
             console.log(nftMetaData.attribution)
+            console.log(metadataFile)
+            console.log(selectedFile)
 
         } catch (err) {
             console.error(err);
@@ -233,7 +247,6 @@ const UploadAndMintLayout = (): JSX.Element => {
                                 alt="random"
                             />
                         </Card>
-                        
                     ) : (
                         "Select a file to upload"
                     )}
