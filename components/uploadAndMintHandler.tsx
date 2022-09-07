@@ -52,10 +52,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const [isSelected, setIsSelected] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File>();
-
     const [unlockableContent, isUnlockableContent] = useState(false)
     const [targetURI, setTargetURI] = useState<string>("Please load collection first")
-
     const [title, setTitle] = useState<string | undefined>(undefined) 
     const [copyright, setCopyright] = useState<string>("CC BY") 
 
@@ -121,18 +119,34 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
         }
     }
 
+    const postMetadata = async (address: string, URI: string, metadata: NFTMetaData) => {
+        const formData = new FormData()
+        let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], {type: 'application/json'})
+        let metaDataFile = new File([metaDataBlob], URI)
+        
+        formData.append('file', metaDataFile)
+
+        let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+            method: "POST",
+            body: formData,
+        })
+    }
+
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
             const signer = connect!.getSigner()
-            const formData = new FormData()
             let address = await signer!.getAddress()
-            const uri = selectedFile!.name + ".metadata.json"
+            const metaDataURI = selectedFile!.name + ".metadata.json"
+            const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
+            
+            let nftMetaData: NFTMetaData
+            let unlockableMetaData: NFTMetaData
 
             console.log(unlockableContent)
             await uploadHandler(connect)
             //await mintERC721(connect, uri)
 
-            let nftMetaData: NFTMetaData = {
+            nftMetaData = {
                 name: title ? title : "undefined",
                 image: address + "/" + selectedFile!.name,
                 unlockableContent: unlockableContent,
@@ -141,20 +155,26 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 }
             }
 
-            let metadataBlob = new Blob([JSON.stringify(nftMetaData, null, 2)], {type: 'application/json'})
-            let metadataFile = new File([metadataBlob], uri)
-            
-            formData.append('file', metadataFile)
+            if (unlockableContent) {
+                console.log("Upload metadata file of unlockable content")
+                
+                let unlockableMetaData = {
+                    name: nftMetaData.name,
+                    image: nftMetaData.image,
+                    unlockableContent: nftMetaData.unlockableContent,
+                    attribution: nftMetaData.attribution,
+                }
+                nftMetaData.image = "temp"
 
-            let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-                method: "POST",
-                body: formData,
-            })
-           
+                console.log("Generate unlockable content metadata...")
+                postMetadata(address, unlockableMetDataURI, unlockableMetaData)
+            }
+
+            console.log("Upload metadata file")
+            postMetadata(address, metaDataURI, nftMetaData)
+
             console.log(nftMetaData)
             console.log(JSON.stringify(nftMetaData))
-            console.log(nftMetaData.attribution)
-            console.log(metadataFile)
             console.log(selectedFile)
 
         } catch (err) {
