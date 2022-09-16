@@ -1,9 +1,9 @@
 import { DashboardContent } from '../../components/dashboard';
-import { UploadLayout } from '../../components/deprecated/uploadHandler';
+import { CreateLayout } from '../../components/createHandler';
 
 export default function UploadPage() {
     return(
-        <UploadLayout />
+        <CreateLayout />
     )
 }
 

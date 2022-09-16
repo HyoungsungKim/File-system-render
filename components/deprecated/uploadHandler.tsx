@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Connect } from './utils';
+import { Connect } from '../utils';
 import { Card, CardActions, CardContent, CardMedia } from '@mui/material';
 import { Alert, Button, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid';

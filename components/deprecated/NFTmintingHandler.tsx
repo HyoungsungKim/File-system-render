@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
-import ERC721Metdata from './contract/ERC721/testdata.json';
+import ERC721ContractInfo from '../contract/ERC721/MyNFT.json';
+import ERC721Metdata from '../contract/ERC721/testdata.json';
 import TextField from '@mui/material/TextField';
 import { Alert, Box, Button, MenuItem } from '@mui/material';
-import { Connect } from './utils';
+import { Connect } from '../utils';
 import { Contract, ContractFactory } from 'ethers';
 
 let connect: Connect | undefined = undefined

@@ -1,5 +1,5 @@
 import { DashboardContent } from '../../components/dashboard';
-import { ERC721Handler } from '../../components/NFTmintingHandler';
+import { ERC721Handler } from '../../components/deprecated/NFTmintingHandler';
 
 export default function mintNFT() {
     return(

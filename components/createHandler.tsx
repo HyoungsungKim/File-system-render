@@ -20,7 +20,7 @@ interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
 }
 
-const mintERC721 = async (connect: Connect | undefined, uri: string) => {
+const mintERC721 = async (connect: Connect | undefined, uri: string): Promise<Contract> => {
     const abi = ERC721ContractInfo.abi;
     const bytecode = ERC721ContractInfo.bytecode;
     const signer = connect!.getSigner();
@@ -33,15 +33,20 @@ const mintERC721 = async (connect: Connect | undefined, uri: string) => {
     const toAddress = await signer!.getAddress()
 
     const mintingResult = await contract.mintNFT(toAddress, URI)
-    mintingResult.wait();
-    let NFTId: any;
-
-    contract.on("Transfer", (from, to, tokenId) => {
-        console.log("From:", from);
-        console.log("To:", to);
-        console.log("TokenId:", tokenId);
+    mintingResult.wait().then(() => {
+        contract.on("Transfer", async (from, to, tokenId) => {
+            console.log("From:", from);
+            console.log("To:", to);
+            console.log("TokenId:", tokenId._hex);
+            console.log("TokenId type:", typeof tokenId._hex);
+            let owner = await contract.ownerOf(tokenId._hex)
+            console.log(owner)
+        })
     })
-}
+    
+
+    return contract
+}   
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
     let { setFile }: FileProps = props;
@@ -56,6 +61,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const [targetURI, setTargetURI] = useState<string>("Please load collection first")
     const [title, setTitle] = useState<string | undefined>(undefined) 
     const [copyright, setCopyright] = useState<string>("CC BY") 
+    const [tokenId, setTokenId] = useState<string>()
 
     const textFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
@@ -106,7 +112,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 signature: signature,
                 type: selectedFile!.type,
                 URI: address + "/" + selectedFile!.name,
-                size: selectedFile!.size,
+                NFTtitle: title,
+                Copyright: copyright,
             })
 
             let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
@@ -140,11 +147,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
             
             let nftMetaData: NFTMetaData
-            let unlockableMetaData: NFTMetaData
-
-            console.log(unlockableContent)
             await uploadHandler(connect)
-            //await mintERC721(connect, uri)
+            let contract = await mintERC721(connect, metaDataURI)                        
 
             nftMetaData = {
                 name: title ? title : "undefined",
@@ -177,6 +181,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             console.log(JSON.stringify(nftMetaData))
             console.log(selectedFile)
 
+
+
         } catch (err) {
             console.error(err);
             console.log((err as Error).message)
@@ -204,7 +210,10 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                         <p>Size in bytes: {selectedFile!.size}</p>
 
                         <div>
-                            <FormControlLabel control={<Switch onChange= {() => { isUnlockableContent(!unlockableContent)} } />} label="Unlockable content" />
+                            <FormControlLabel control={<Switch onChange= {() => { 
+                                isUnlockableContent(!unlockableContent)
+                                setCopyright("unlockable content")
+                            }} />} label="Unlockable content" />
                         </div>
 
                         <div>
@@ -220,8 +229,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                                     <FormControlLabel value="CC BY-NC" disabled={unlockableContent} control={<Radio />} label="CC BY-NC" />
                                     <FormControlLabel value="CC BY-ND" disabled={unlockableContent} control={<Radio />} label="CC BY-ND" />
                                     <FormControlLabel value="CC BY-SA" disabled={unlockableContent} control={<Radio />} label="CC BY-SA" />
-                                    <FormControlLabel value="CC BY-NC-SA" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-SA" />
                                     <FormControlLabel value="CC BY-NC-ND" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-ND" />
+                                    <FormControlLabel value="CC BY-NC-SA" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-SA" />
                                 </RadioGroup>
                             </FormControl>
                         </div>
@@ -240,7 +249,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 }
 
 
-const UploadAndMintLayout = (): JSX.Element => {
+const CreateLayout = (): JSX.Element => {
     const [file, setFile] = useState<File | undefined>(undefined)
 
     return (
@@ -272,7 +281,6 @@ const UploadAndMintLayout = (): JSX.Element => {
                     )}
                 </Paper>
             </Grid>
-            {/* Recent Deposits */}
             <Grid item xs={12} md={4} lg={3}>
                 <Paper
                     sx={{
@@ -289,4 +297,4 @@ const UploadAndMintLayout = (): JSX.Element => {
     )
 }
 
-export {UploadAndMintLayout}
+export {CreateLayout}

@@ -1,9 +1,9 @@
 import { DashboardContent } from '../../components/dashboard';
-import { UploadAndMintLayout } from '../../components/uploadAndMintHandler';
+import { RequestLayout } from '../../components/requestHandler';
 
 export default function UploadPage() {
     return(
-        <UploadAndMintLayout />
+        <RequestLayout />
     )
 }
 

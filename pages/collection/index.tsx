@@ -1,5 +1,5 @@
 import { DashboardContent } from '../../components/dashboard';
-import { ViewFiles } from '../../components/fileViewHandler';
+import { ViewFiles } from '../../components/collectionHandler';
 
 export default function ViewCollection() {
     return(
