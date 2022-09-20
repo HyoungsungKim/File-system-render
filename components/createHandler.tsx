@@ -12,6 +12,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 
 import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
+import { resolve } from 'node:path/win32';
 
 
 let connect: Connect | undefined = undefined;
@@ -33,19 +34,31 @@ const mintERC721 = async (connect: Connect | undefined, uri: string): Promise<Co
     const toAddress = await signer!.getAddress()
 
     const mintingResult = await contract.mintNFT(toAddress, URI)
-    mintingResult.wait().then(() => {
+    mintingResult.wait()
+
+    /*
+    .then(async (tokenId) => {
+        console.log(tokenId)
+        if (tokenId) {
+            let owner = await contract.ownerOf(tokenId)
+            console.log("Owner:", owner)
+        }
+    })
+    */
+    return new Promise((resolve) => {
         contract.on("Transfer", async (from, to, tokenId) => {
+            /*
+            console.log("Call in mintERC721:");
             console.log("From:", from);
             console.log("To:", to);
             console.log("TokenId:", tokenId._hex);
             console.log("TokenId type:", typeof tokenId._hex);
-            let owner = await contract.ownerOf(tokenId._hex)
-            console.log(owner)
+            */
+            if (from == to) {
+                resolve(tokenId._hex)
+            }
         })
     })
-    
-
-    return contract
 }   
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
@@ -148,7 +161,14 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             
             let nftMetaData: NFTMetaData
             await uploadHandler(connect)
-            let contract = await mintERC721(connect, metaDataURI)                        
+            let contract = await mintERC721(connect, metaDataURI)      
+            contract.then(async (tokenId: string) => {
+                console.log(tokenId)
+                if (tokenId) {
+                    let owner = await contract.ownerOf(tokenId)
+                    console.log("Owner:", owner)
+                }
+            })            
 
             nftMetaData = {
                 name: title ? title : "undefined",
