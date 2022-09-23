@@ -12,7 +12,8 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 
 import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
-import { resolve } from 'node:path/win32';
+import { receiveMessageOnPort } from 'worker_threads';
+import { CircleOutlined } from '@mui/icons-material';
 
 
 let connect: Connect | undefined = undefined;
@@ -21,44 +22,119 @@ interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
 }
 
-const mintERC721 = async (connect: Connect | undefined, uri: string): Promise<Contract> => {
+ // post metadata to DB
+ async function uploadHandler(
+        connect: Connect | undefined,
+        selectedFile:File,
+        title: string,
+        copyright: string,
+        tokenId: string
+) {
+    const formData = new FormData();
+    const signer = connect!.getSigner();
+    //console.log("Signer: ")
+    //console.log(signer)
+    let address = await signer!.getAddress();
+    let signature = await signer!.signMessage(address);
+
+    //console.log(signature)
+    formData.append('file', selectedFile!);
+    console.log(formData);
+
+    let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+        method: "POST",
+        body: formData,
+    });
+    //console.log(response)
+    // TODO: Implement write data to DB with file hash
+    let POSTbody = JSON.stringify({
+        account_id: address,
+        file_name: selectedFile!.name,
+        signature: signature,
+        type: selectedFile!.type,
+        URI: address + "/" + selectedFile!.name,
+        NFTtitle: title,
+        NFT_id: tokenId,
+        Copyright: copyright,
+    });
+
+    let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
+        method: "POST",
+        body: POSTbody,
+    });
+    //console.log(POSTbody)
+    //console.log(responseFromDB)
+    //console.log("Upload is successful!")
+}
+
+// Post Metadada json file to storage
+async function postMetadata(address: string, URI: string, metadata: NFTMetaData) {
+    const formData = new FormData();
+    let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    let metaDataFile = new File([metaDataBlob], URI);
+
+    formData.append('file', metaDataFile);
+
+    let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+        method: "POST",
+        body: formData,
+    });
+}
+
+async function mintERC721(
+    connect: Connect | undefined,
+    selectedFile: File,
+    unlockableContent: boolean,
+    nftMetaData: NFTMetaData,
+    copyright: string
+): Promise<Contract> {
     const abi = ERC721ContractInfo.abi;
     const bytecode = ERC721ContractInfo.bytecode;
     const signer = connect!.getSigner();
-
     const contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, signer);
+
+    const metaDataURI = selectedFile!.name + ".metadata.json"
+    const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
+
     //contract.attach("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83")
-
+    //contract.on("transfer", (from, to, tokenid) => {...})
     //const URI = URIInput.value;
-    const URI = uri
-    const toAddress = await signer!.getAddress()
+    const toAddress = await signer!.getAddress();
+    const mintingResult = await contract.mintNFT(toAddress, metaDataURI);
+    const receipt = await mintingResult.wait();
+    
+    //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
+    let hexTokenId = receipt.logs[0].topics[3]
+    let tokenId_dec = parseInt(hexTokenId, 16).toString()
+    console.log(tokenId_dec);
 
-    const mintingResult = await contract.mintNFT(toAddress, URI)
-    mintingResult.wait()
+    await uploadHandler(connect, selectedFile, nftMetaData.title, copyright, tokenId_dec);
+    if (unlockableContent) {
+        console.log("Upload metadata file of unlockable content");
 
-    /*
-    .then(async (tokenId) => {
-        console.log(tokenId)
-        if (tokenId) {
-            let owner = await contract.ownerOf(tokenId)
-            console.log("Owner:", owner)
-        }
-    })
-    */
-    return new Promise((resolve) => {
-        contract.on("Transfer", async (from, to, tokenId) => {
-            /*
-            console.log("Call in mintERC721:");
-            console.log("From:", from);
-            console.log("To:", to);
-            console.log("TokenId:", tokenId._hex);
-            console.log("TokenId type:", typeof tokenId._hex);
-            */
-            if (from == to) {
-                resolve(tokenId._hex)
-            }
-        })
-    })
+        let unlockableMetaData: NFTMetaData = {
+            title: nftMetaData.title,
+            image: nftMetaData.image,
+            NFTId: tokenId_dec,
+            unlockableContent: nftMetaData.unlockableContent,
+            attribution: nftMetaData.attribution,
+        };
+        nftMetaData.image = "temp";
+
+        console.log("Generate unlockable content metadata...");
+        await postMetadata(toAddress, unlockableMetDataURI, unlockableMetaData);
+    }
+
+    nftMetaData.NFTId = tokenId_dec;
+    console.log("Upload metadata file");
+    await postMetadata(toAddress, metaDataURI, nftMetaData);
+
+    console.log(nftMetaData);
+    console.log(JSON.stringify(nftMetaData));
+    console.log(selectedFile);
+
+
+    return contract;
 }   
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
@@ -74,7 +150,6 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const [targetURI, setTargetURI] = useState<string>("Please load collection first")
     const [title, setTitle] = useState<string | undefined>(undefined) 
     const [copyright, setCopyright] = useState<string>("CC BY") 
-    const [tokenId, setTokenId] = useState<string>()
 
     const textFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
@@ -85,123 +160,39 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     }
 
     // Select file and change states
-    const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let file = event.target.files
+    function changeHandler(event: React.ChangeEvent<HTMLInputElement>) {
+        let file = event.target.files;
         if (file) {
-            setSelectedFile(file[0])
-            setIsSelected(true)
+            setSelectedFile(file[0]);
+            setIsSelected(true);
 
-            setFile(file[0])
-            setTargetURI(event.target.value)
-            console.log(URL.createObjectURL(file[0]))
+            setFile(file[0]);
+            setTargetURI(event.target.value);
+            console.log(URL.createObjectURL(file[0]));
         }
-    };
-
-    const uploadHandler = async (connect: Connect | undefined) => {
-        const formData = new FormData()
-        const signer = connect!.getSigner()
-        console.log("Signer: ")
-        console.log(signer)
-
-        let address = await signer!.getAddress()
-        let signature = await signer!.signMessage(address)
-
-        console.log(signature)
-
-        if (isSelected) {
-            formData.append('file', selectedFile!)
-            console.log(formData)
-
-            let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-                method: "POST",
-                body: formData,
-            })
-            console.log(response)
-
-            // TODO: Implement write data to DB with file hash
-            let POSTbody = JSON.stringify({
-                account_id: address,
-                file_name: selectedFile!.name,
-                signature: signature,
-                type: selectedFile!.type,
-                URI: address + "/" + selectedFile!.name,
-                NFTtitle: title,
-                Copyright: copyright,
-            })
-
-            let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
-                method: "POST",
-                body: POSTbody,
-            })
-            console.log(POSTbody)
-            console.log(responseFromDB)
-            console.log("Upload is successful!")
-        }
-    }
-
-    const postMetadata = async (address: string, URI: string, metadata: NFTMetaData) => {
-        const formData = new FormData()
-        let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], {type: 'application/json'})
-        let metaDataFile = new File([metaDataBlob], URI)
-        
-        formData.append('file', metaDataFile)
-
-        let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-            method: "POST",
-            body: formData,
-        })
     }
 
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
             const signer = connect!.getSigner()
             let address = await signer!.getAddress()
-            const metaDataURI = selectedFile!.name + ".metadata.json"
-            const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
-            
-            let nftMetaData: NFTMetaData
-            await uploadHandler(connect)
-            let contract = await mintERC721(connect, metaDataURI)      
-            contract.then(async (tokenId: string) => {
-                console.log(tokenId)
-                if (tokenId) {
-                    let owner = await contract.ownerOf(tokenId)
-                    console.log("Owner:", owner)
-                }
-            })            
 
-            nftMetaData = {
-                name: title ? title : "undefined",
+            
+            let nftMetaData: NFTMetaData = {
+                title: title ? title : "undefined",
                 image: address + "/" + selectedFile!.name,
                 unlockableContent: unlockableContent,
+                NFTId: undefined,
                 attribution: unlockableContent ? undefined : {
                     copyright: copyright,
                 }
             }
 
-            if (unlockableContent) {
-                console.log("Upload metadata file of unlockable content")
-                
-                let unlockableMetaData = {
-                    name: nftMetaData.name,
-                    image: nftMetaData.image,
-                    unlockableContent: nftMetaData.unlockableContent,
-                    attribution: nftMetaData.attribution,
-                }
-                nftMetaData.image = "temp"
-
-                console.log("Generate unlockable content metadata...")
-                postMetadata(address, unlockableMetDataURI, unlockableMetaData)
+            console.log("Call mintERC721")
+            if (isSelected) {
+                await mintERC721(connect, selectedFile!, unlockableContent, nftMetaData, copyright);                      
             }
-
-            console.log("Upload metadata file")
-            postMetadata(address, metaDataURI, nftMetaData)
-
-            console.log(nftMetaData)
-            console.log(JSON.stringify(nftMetaData))
-            console.log(selectedFile)
-
-
+         
 
         } catch (err) {
             console.error(err);

@@ -20,8 +20,9 @@ interface Attribution {
 }
 
 interface NFTMetaData {
-    name: string;
+    title: string;
     image: string; // It denotes URI
+    NFTId: string | undefined;
     unlockableContent: boolean;
     attribution: Attribution | undefined;
 }

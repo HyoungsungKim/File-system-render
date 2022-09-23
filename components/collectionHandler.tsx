@@ -135,7 +135,7 @@ function ViewFiles(props: ViewProps): JSX.Element {
 
         let validSignature = await signer!.signMessage(address)
         if (validSignature === jsonResponse.signature) {
-            fileURIs = jsonResponse.URI
+            fileURIs = jsonResponse.URIs
             NFTtitles = jsonResponse.NFTtitles
             copyrights = jsonResponse.copyrights
             console.log(jsonResponse)
