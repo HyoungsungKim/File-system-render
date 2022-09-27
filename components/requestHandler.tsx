@@ -1,9 +1,11 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import type { NFTMetaData } from './utils';
 import { cclLogo, Connect } from './utils';
 import { Contract, } from 'ethers';
 
-import {Alert, Button, Card, CardMedia, TextField} from '@mui/material';
+import {Alert, Box, Button, Card, CardMedia, TextField} from '@mui/material';
+import {LinearProgress } from '@mui/material';
+
 import {Grid, Paper, Stack} from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -19,26 +21,25 @@ interface RequestProps {
 
 interface MetadataInfoProps {
     jsonResponse: any;
+    NFTOwner: string
     NFTUser: string;
 }
 
 const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
-    let {jsonResponse, NFTUser} = props;
-
-
+    let {jsonResponse, NFTOwner, NFTUser} = props;
 
     return (
         <div>
             {jsonResponse ? 
             (<List>
                 <ListItem disablePadding>
-                    <TextField id="NFT-owner" label="NFT title" variant="standard" defaultValue={jsonResponse.NFTtitle} disabled/>
+                    <TextField id="NFT-owner" label="NFT title" variant="standard" value={jsonResponse.NFTtitle} disabled/>
                 </ListItem>
                 <ListItem disablePadding>
-                    <TextField id="NFT-owner" label="NFT Owner" variant="standard" defaultValue={jsonResponse.account_id.slice(0,15) + "..."} disabled/>
+                    <TextField id="NFT-owner" label="NFT Owner" variant="standard" value={NFTOwner.slice(0,15) + "..."} disabled/>
                 </ListItem>
                 <ListItem disablePadding>
-                    <TextField id="NFT-user" label="NFT User" variant="standard" defaultValue={NFTUser} disabled/>
+                    <TextField id="NFT-user" label="NFT User" variant="standard" value={NFTUser.slice(0,15) + "..."} disabled/>
                 </ListItem>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
                     {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
@@ -79,9 +80,12 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
 
 const NFTInfoHandler = (props: RequestProps): JSX.Element => {
     let {jsonResponse, setJsonResponse} = props;
-    let [NFTInfo, setNFTInfo] = useState<NFTMetaData>();
     let [NFTId, setNFTId] = useState<string>("");
-    let [NFTuser, setNFTUser] = useState<string>("");
+    let [NFTOwner, setNFTOwner] = useState<string>("")
+    let [NFTUser, setNFTUser] = useState<string>("");
+    
+    let [isLoaded, setIsLoaded] = useState<boolean>(false)
+    let [loadCircular, setLoadCircular] = useState<boolean>(false)
 
     useEffect(() => {
         connect = new Connect(window.ethereum);
@@ -93,6 +97,8 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
     }
 
     const getNFTInfoHandler = async (connect: Connect | undefined, nftId: string) => {
+        setLoadCircular(true)
+
         let response = await fetch("http://172.30.0.1:8090/request/" + nftId, {
             method: "GET",
         })
@@ -105,8 +111,17 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
 
         console.log(contract)
         console.log(NFTId)
-        console.log(await contract.ownerOf(NFTId))
 
+        let owner = await contract.ownerOf(NFTId)
+        setNFTOwner(owner)
+
+        let user = await contract.userOf(NFTId)
+        setNFTUser(user)
+
+        console.log(owner)
+        console.log(user)
+
+        setIsLoaded(true)
     }
 
     return (
@@ -115,14 +130,20 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
                 <TextField id="NFT-id" label="NFT ID" variant="standard" onChange={textFieldHandler}/>
                 <Button variant="contained" onClick={ () => getNFTInfoHandler(connect, NFTId)}>{"Get"}</Button>
             </Stack>
-            <MetadataInfoHandler jsonResponse={jsonResponse} NFTUser={NFTuser}/>
+             {
+                isLoaded ?
+                    <MetadataInfoHandler jsonResponse={jsonResponse} NFTOwner={NFTOwner} NFTUser={NFTUser}/> 
+                : (
+                    loadCircular ?
+                        <Box sx={{ m: 1, width: "100%" }}>
+                            <LinearProgress  />
+                        </Box>
+                    : <Box sx={{ m: 1, width: "100%" }}>
+                        <Alert severity="info">NFT Rental</Alert>
+                    </Box>
+                )
+             }
         </div>
-    )
-}
-
-const RentalHandler = () => {
-    return (
-        <Alert severity="info">NFT Rental</Alert>
     )
 }
 
