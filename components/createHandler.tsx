@@ -4,16 +4,15 @@ import { Contract, ContractFactory } from 'ethers';
 import { Connect } from './utils';
 import type { Attribution, NFTMetaData} from './utils';
 
-import { Alert, Button, Card, CardActions, CardContent, CardMedia } from '@mui/material';
+import { Alert, Button, Card, CardActions, CardContent, CardMedia, Divider } from '@mui/material';
 import {TextField, Typography, MenuItem, Switch, FormControlLabel} from '@mui/material';
 import {Radio, RadioGroup, FormControl, FormLabel} from '@mui/material';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 
-import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
-import { receiveMessageOnPort } from 'worker_threads';
-import { CircleOutlined } from '@mui/icons-material';
+//import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
+import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
 
 let connect: Connect | undefined = undefined;
@@ -88,10 +87,17 @@ async function mintERC721(
     nftMetaData: NFTMetaData,
     copyright: string
 ): Promise<Contract> {
-    const abi = ERC721ContractInfo.abi;
-    const bytecode = ERC721ContractInfo.bytecode;
+    //const abi = ERC721ContractInfo.abi;
+    const abi = ERC4907ContractInfo.abi;
+    
+    //const bytecode = ERC721ContractInfo.bytecode;
+    const byteconde = ERC4907ContractInfo.bytecode;
+    
     const signer = connect!.getSigner();
-    const contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, signer);
+    // ERC4907 contract "0x0354fab135deE2b7aCc82c36047C1C157cE98B1B"
+    const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, signer);
+    //ERC721 contract
+    //const contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, signer);
 
     const metaDataURI = selectedFile!.name + ".metadata.json"
     const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
@@ -188,7 +194,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 }
             }
 
-            console.log("Call mintERC721")
+            console.log("Call mint ERC721")
             if (isSelected) {
                 await mintERC721(connect, selectedFile!, unlockableContent, nftMetaData, copyright);                      
             }
@@ -204,7 +210,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     if (connect !== undefined) {
         return (
             <div>
-                <Stack spacing={1} direction="row">
+                <Stack spacing={1} direction="row" sx={{ my: 1}}>
                     <Button variant="contained" component="label" > Select file
                         <input type="file" name="file" hidden onChange={changeHandler} />
                     </Button>
@@ -213,13 +219,13 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                         () => submissionHandler(connect)
                     }>{"Create"}
                     </Button>
-                </Stack>
+                </Stack> 
+                <Divider variant="middle" />
                 {isSelected ? (
                     <div>
-                        <p>Filename: {selectedFile!.name}</p>
-                        <p>FIletype: {selectedFile!.type}</p>
-                        <p>Size in bytes: {selectedFile!.size}</p>
-
+                        <TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/>
+                        <TextField id="FileType" label="File type" variant="standard" defaultValue={selectedFile!.type} disabled/>
+                        <TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>
                         <div>
                             <FormControlLabel control={<Switch onChange= {() => { 
                                 isUnlockableContent(!unlockableContent)
@@ -250,9 +256,11 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                             <TextField id="NFT-title" label="Title" variant="standard" onChange={textFieldHandler} />
                         </div>
                     </div>
+                    
                 ) : (
-                    <p>Select a file to upload</p>
+                    <Alert severity="info">Select a file</Alert>
                 )}
+                
             </div>
         )
     }

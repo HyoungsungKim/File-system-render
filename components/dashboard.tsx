@@ -153,11 +153,11 @@ export function DashboardContent({children}:{
                     <Divider />
                     <List component="nav">
                         {mainListItems}
-                        <Divider sx={{ my: 1 }} />
+                    <Divider sx={{ my: 1 }} />
                         {
-                            //secondaryListItems
+                            // { secondaryListItems }
+                        //<Divider sx={{ my: 2 }} />
                         }
-                        <Divider sx={{ my: 2 }} />
                     </List>
                 </Drawer>
 

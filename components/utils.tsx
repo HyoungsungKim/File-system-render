@@ -1,7 +1,15 @@
 import * as React from 'react';
 import { ethers } from 'ethers';
-import { ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Button, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import Link from 'next/link';
+
+import LockIcon from '@mui/icons-material/Lock';
+import CC_BY from './img/by.svg';
+import CC_BY_NC from './img/by-nc.svg';
+import CC_BY_ND from './img/by-nd.svg';
+import CC_BY_SA from './img/by-sa.svg';
+import CC_BY_NC_ND from './img/by-nc-nd.svg';
+import CC_BY_NC_SA from './img/by-nc-sa.svg';
 
 declare global {
     interface Window {
@@ -25,6 +33,22 @@ interface NFTMetaData {
     NFTId: string | undefined;
     unlockableContent: boolean;
     attribution: Attribution | undefined;
+}
+
+interface CCLLogo {
+    [key: string]: any;
+}
+
+let cclLogo: CCLLogo = {
+    "CC BY": () => { return <CC_BY /> },
+    "CC BY-NC": () => { return <CC_BY_NC /> },
+    "CC BY-ND": () => { return <CC_BY_ND /> },
+    "CC BY-SA": () => { return <CC_BY_SA />} ,
+    "CC BY-NC-ND": () => { return <CC_BY_NC_ND />},
+    "CC BY-NC-SA": () => { return <CC_BY_NC_SA />},
+    "unlockable content": () => {
+        return <Button startIcon={<LockIcon />} size="small" sx={{width:120, height: 42 }} />
+    }
 }
 
 class Connect {
@@ -84,5 +108,27 @@ function ListItemLink(props: ListItemLinkProps) {
     );
 }
 
-export { Connect, ListItemLink, encryptAddress }
-export type { Attribution, NFTMetaData }
+// variables `since` and `expired` should be milliseconds
+async function testExpirationTime(since:number, expired:number) {
+    const delay = (ms: number) => {
+        return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+
+    console.log("Retnal start in ", new Date(since))
+    console.log("Rental expired in ", new Date(expired))
+    while(true) {
+        let currentTime = new Date().getTime()
+        console.log("Current time: ", new Date(currentTime));
+
+        if (currentTime >= expired) {
+            console.log("Current time: ", new Date(currentTime), " Expired time: ", new Date(expired))
+            break;
+        }
+        console.log("sleep 5 sec")
+        await delay(5000)
+    }
+}
+
+export { cclLogo, Connect, ListItemLink, encryptAddress }
+export type { CCLLogo, Attribution, NFTMetaData }

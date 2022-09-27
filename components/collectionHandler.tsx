@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import { Connect } from './utils';
+import { cclLogo, Connect } from './utils';
 
 import { Alert, Button } from '@mui/material';
 import { Card, CardActions, CardContent, CardMedia, Container} from '@mui/material';
@@ -7,35 +7,14 @@ import { Icon, IconButton, Stack, Typography } from '@mui/material';
 import {Grid} from '@mui/material';
 
 import DownloadIcon from '@mui/icons-material/Download';
-import LockIcon from '@mui/icons-material/Lock';
 
-import CC_BY from './img/by.svg';
-import CC_BY_NC from './img/by-nc.svg';
-import CC_BY_ND from './img/by-nd.svg';
-import CC_BY_SA from './img/by-sa.svg';
-import CC_BY_NC_ND from './img/by-nc-nd.svg';
-import CC_BY_NC_SA from './img/by-nc-sa.svg';
-
-interface CCLogo {
-    [key: string]: any;
-}
 
 interface ViewProps {
     title: string;
 }
 
 let connect: Connect
-let cclogo: CCLogo = {
-    "CC BY": () => { return <CC_BY /> },
-    "CC BY-NC": () => { return <CC_BY_NC /> },
-    "CC BY-ND": () => { return <CC_BY_ND /> },
-    "CC BY-SA": () => { return <CC_BY_SA />} ,
-    "CC BY-NC-ND": () => { return <CC_BY_NC_ND />},
-    "CC BY-NC-SA": () => { return <CC_BY_NC_SA />},
-    "unlockable content": () => {
-        return <Button startIcon={<LockIcon />} size="small" sx={{width:120, height: 42 }} />
-    }
-}
+
 
 function displaySrc(
         srcURIs: string[] | undefined,
@@ -84,7 +63,7 @@ function displaySrc(
                             <CardActions>      
                                 <Stack direction="row" alignItems="center" gap={0.5}>
                                     {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
-                                        cclogo[copyrights![index]]()
+                                        cclLogo[copyrights![index]]()
                                     }
                                     <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42 }} onClick={async () => {
                                         let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card], {

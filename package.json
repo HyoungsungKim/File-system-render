@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "babel-plugin-inline-react-svg": "^2.0.1",
+    "dotenv": "^16.0.2",
     "eslint": "^8.23.1"
   }
 }
