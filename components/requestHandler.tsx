@@ -1,36 +1,16 @@
 import React, {useState, useEffect} from 'react';
 import type { NFTMetaData } from './utils';
-
+import { cclLogo, Connect } from './utils';
+import { Contract, } from 'ethers';
 
 import {Alert, Button, Card, CardMedia, TextField} from '@mui/material';
 import {Grid, Paper, Stack} from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
 
-import LockIcon from '@mui/icons-material/Lock';
-import CC_BY from './img/by.svg';
-import CC_BY_NC from './img/by-nc.svg';
-import CC_BY_ND from './img/by-nd.svg';
-import CC_BY_SA from './img/by-sa.svg';
-import CC_BY_NC_ND from './img/by-nc-nd.svg';
-import CC_BY_NC_SA from './img/by-nc-sa.svg';
+import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
-interface CCLogo {
-    [key: string]: any;
-}
-
-let cclogo: CCLogo = {
-    "CC BY": () => { return <CC_BY /> },
-    "CC BY-NC": () => { return <CC_BY_NC /> },
-    "CC BY-ND": () => { return <CC_BY_ND /> },
-    "CC BY-SA": () => { return <CC_BY_SA />} ,
-    "CC BY-NC-ND": () => { return <CC_BY_NC_ND />},
-    "CC BY-NC-SA": () => { return <CC_BY_NC_SA />},
-    "unlockable content": () => {
-        return <Button startIcon={<LockIcon />} size="small" sx={{width:120, height: 42 }} />
-    }
-}
+let connect: Connect | undefined = undefined;
 
 interface RequestProps {
     jsonResponse: any;
@@ -39,23 +19,30 @@ interface RequestProps {
 
 interface MetadataInfoProps {
     jsonResponse: any;
+    NFTUser: string;
 }
 
 const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
-    let {jsonResponse} = props;
+    let {jsonResponse, NFTUser} = props;
+
+
+
     return (
         <div>
             {jsonResponse ? 
             (<List>
                 <ListItem disablePadding>
-                    <ListItemText primary={"Title: " + jsonResponse.NFTtitle} />
+                    <TextField id="NFT-owner" label="NFT title" variant="standard" defaultValue={jsonResponse.NFTtitle} disabled/>
                 </ListItem>
                 <ListItem disablePadding>
-                    <ListItemText primary={"Owner: " + jsonResponse.account_id.slice(0,15) + "..."} />
+                    <TextField id="NFT-owner" label="NFT Owner" variant="standard" defaultValue={jsonResponse.account_id.slice(0,15) + "..."} disabled/>
+                </ListItem>
+                <ListItem disablePadding>
+                    <TextField id="NFT-user" label="NFT User" variant="standard" defaultValue={NFTUser} disabled/>
                 </ListItem>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
                     {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
-                        cclogo[jsonResponse.copyright]()
+                        cclLogo[jsonResponse.copyright]()
                     }
                 </ListItem>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
@@ -66,10 +53,13 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
             <div>
                 <List>
                     <ListItem disablePadding>
-                        <ListItemText primary={"Title:"} />
+                        <TextField id="NFT-title" label="NFT title" variant="standard" disabled />
                     </ListItem>
                     <ListItem disablePadding>
-                        <ListItemText primary={"Owner:"} />
+                        <TextField id="NFT-owner" label="NFT Owner" variant="standard" disabled/>
+                    </ListItem>
+                    <ListItem disablePadding>
+                        <TextField id="NFT-user" label="NFT User" variant="standard" disabled/>
                     </ListItem>
                     <ListItem style={{display:'flex', justifyContent:'center'}} >
                         {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
@@ -91,27 +81,41 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
     let {jsonResponse, setJsonResponse} = props;
     let [NFTInfo, setNFTInfo] = useState<NFTMetaData>();
     let [NFTId, setNFTId] = useState<string>("");
+    let [NFTuser, setNFTUser] = useState<string>("");
+
+    useEffect(() => {
+        connect = new Connect(window.ethereum);
+    }, [])
+
 
     const textFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setNFTId(event.target.value);
     }
 
-    const getNFTInfoHandler = async (nftId: string) => {
+    const getNFTInfoHandler = async (connect: Connect | undefined, nftId: string) => {
         let response = await fetch("http://172.30.0.1:8090/request/" + nftId, {
             method: "GET",
         })
         let jsonResponse = await response.json()
         console.log(jsonResponse)
         setJsonResponse(jsonResponse)
+
+        const abi = ERC4907ContractInfo.abi;
+        const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, connect?.getProvider());
+
+        console.log(contract)
+        console.log(NFTId)
+        console.log(await contract.ownerOf(NFTId))
+
     }
 
     return (
         <div>
             <Stack spacing={1} direction="row">
                 <TextField id="NFT-id" label="NFT ID" variant="standard" onChange={textFieldHandler}/>
-                <Button variant="contained" onClick={ () => getNFTInfoHandler(NFTId)}>{"Get"}</Button>
+                <Button variant="contained" onClick={ () => getNFTInfoHandler(connect, NFTId)}>{"Get"}</Button>
             </Stack>
-            <MetadataInfoHandler jsonResponse={jsonResponse}/>
+            <MetadataInfoHandler jsonResponse={jsonResponse} NFTUser={NFTuser}/>
         </div>
     )
 }
