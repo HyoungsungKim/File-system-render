@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';  
 
@@ -12,12 +12,16 @@ let provider: ethers.providers.Web3Provider;
 interface ConnectProps {
     isConnected: boolean;
     setIsConnected: React.Dispatch<React.SetStateAction<boolean>>
+    account: string| undefined
+    setAccount: React.Dispatch<React.SetStateAction<string | undefined>>
 }
 
 function ConnectAccount(props: ConnectProps): JSX.Element {
+    const {isConnected, setIsConnected, account, setAccount} = props
 
-    const {isConnected, setIsConnected} = props
-    const [userAccount, setUsetAccount] = useState<string>()
+    useEffect(() => {
+        connect = new Connect(window.ethereum);
+    }, [])
 
     const connectMetamask = async () => {
         connect = new Connect(window.ethereum);
@@ -26,21 +30,22 @@ function ConnectAccount(props: ConnectProps): JSX.Element {
         const signer = connect.getSigner();
 
         setIsConnected(true)
-        setUsetAccount(await signer?.getAddress())
+        setAccount(await signer?.getAddress())
     }
 
     const clickHandler = async () => {
-        connectMetamask()
-        
+        if (!account) {
+            connectMetamask()
+            console.log("Account", account);
+        }
         //userAccountComponent = document.getElementById("userAccount") as HTMLSpanElement;
         //userAccountComponent.textContent = `User account: ${userAccount}`;
-        console.log("Account", userAccount);
     }
 
     return (
         isConnected ? (
         <div>
-            <Chip label={userAccount?.slice(0,15) + "..."} color="primary" />
+            <Chip label={account?.slice(0,15) + "..."} color="primary" />
         </div>
         ) : (
             <div>

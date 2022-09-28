@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import MuiDrawer from '@mui/material/Drawer';
@@ -20,6 +20,7 @@ import Link from "next/link"
 
 import { mainListItems, secondaryListItems } from './listItems';
 import { ConnectAccount } from './accountHandler';
+
 
 function Copyright(props: any) {
     return (
@@ -89,12 +90,15 @@ const mdTheme = createTheme();
 export function DashboardContent({children}:{
     children?: React.ReactNode
 }): JSX.Element {
-    const [open, setOpen] = React.useState(true);
+    const [open, setOpen] = useState(true);
+    const [account, setAccount] = useState<string>();
+    const [isConnected, setIsConnected] = useState(false)
+
     const toggleDrawer = () => {
         setOpen(!open);
     };
 
-    const [isConnected, setIsConnected] = useState(false)
+
 
     return (
         <ThemeProvider theme={mdTheme}>
@@ -129,7 +133,7 @@ export function DashboardContent({children}:{
                                 <a>Dashboard</a>
                             </Link>
                         </Typography>
-                        <ConnectAccount isConnected={isConnected} setIsConnected={setIsConnected} />
+                        <ConnectAccount isConnected={isConnected} setIsConnected={setIsConnected} account={account} setAccount={setAccount} />
                         <IconButton color="inherit">
                             <Badge badgeContent={4} color="secondary">
                                 <NotificationsIcon />
