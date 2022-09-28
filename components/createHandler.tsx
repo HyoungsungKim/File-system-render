@@ -23,35 +23,30 @@ interface FileProps {
 
  // post metadata to DB
  async function uploadHandler(
-        connect: Connect | undefined,
         selectedFile:File,
+        ownerAddress: string,
         title: string,
+        signature: string,
         copyright: string,
         tokenId: string
 ) {
     const formData = new FormData();
-    const signer = connect!.getSigner();
-    //console.log("Signer: ")
-    //console.log(signer)
-    let address = await signer!.getAddress();
-    let signature = await signer!.signMessage(address);
 
-    //console.log(signature)
     formData.append('file', selectedFile!);
     console.log(formData);
 
-    let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+    let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
         method: "POST",
         body: formData,
     });
-    //console.log(response)
+
     // TODO: Implement write data to DB with file hash
     let POSTbody = JSON.stringify({
-        account_id: address,
+        account_id: ownerAddress,
         file_name: selectedFile!.name,
         signature: signature,
         type: selectedFile!.type,
-        URI: address + "/" + selectedFile!.name,
+        URI: ownerAddress + "/" + selectedFile!.name,
         NFTtitle: title,
         NFT_id: tokenId,
         Copyright: copyright,
@@ -61,9 +56,6 @@ interface FileProps {
         method: "POST",
         body: POSTbody,
     });
-    //console.log(POSTbody)
-    //console.log(responseFromDB)
-    //console.log("Upload is successful!")
 }
 
 // Post Metadada json file to storage
@@ -98,15 +90,17 @@ async function mintERC721(
     const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, signer);
     //ERC721 contract
     //const contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, signer);
-
+    
     const metaDataURI = selectedFile!.name + ".metadata.json"
     const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
 
     //contract.attach("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83")
     //contract.on("transfer", (from, to, tokenid) => {...})
     //const URI = URIInput.value;
-    const toAddress = await signer!.getAddress();
-    const mintingResult = await contract.mintNFT(toAddress, metaDataURI);
+    const ownerAddress = await signer!.getAddress();
+    const signature = await signer!.signMessage(ownerAddress);
+
+    const mintingResult = await contract.mintNFT(ownerAddress, metaDataURI);
     const receipt = await mintingResult.wait();
     
     //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
@@ -114,7 +108,7 @@ async function mintERC721(
     let tokenId_dec = parseInt(hexTokenId, 16).toString()
     console.log(tokenId_dec);
 
-    await uploadHandler(connect, selectedFile, nftMetaData.title, copyright, tokenId_dec);
+    await uploadHandler(selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec);
     if (unlockableContent) {
         console.log("Upload metadata file of unlockable content");
 
@@ -128,12 +122,12 @@ async function mintERC721(
         nftMetaData.image = "temp";
 
         console.log("Generate unlockable content metadata...");
-        await postMetadata(toAddress, unlockableMetDataURI, unlockableMetaData);
+        await postMetadata(ownerAddress, unlockableMetDataURI, unlockableMetaData);
     }
 
     nftMetaData.NFTId = tokenId_dec;
     console.log("Upload metadata file");
-    await postMetadata(toAddress, metaDataURI, nftMetaData);
+    await postMetadata(ownerAddress, metaDataURI, nftMetaData);
 
     console.log(nftMetaData);
     console.log(JSON.stringify(nftMetaData));

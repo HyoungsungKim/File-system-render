@@ -9,8 +9,19 @@ import {LinearProgress } from '@mui/material';
 import {Grid, Paper, Stack} from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
+
+const ONEMINUTE_SECOND = 60
+const ONEHOUR_SECOND = ONEMINUTE_SECOND * 60
+const ONEDAY_SECOND = ONEHOUR_SECOND * 24
+const ONEWEEK_SECOND = ONEDAY_SECOND * 7
+const ONEYEAR_SECOND = ONEDAY_SECOND * 365
 
 let connect: Connect | undefined = undefined;
 
@@ -25,8 +36,61 @@ interface MetadataInfoProps {
     NFTUser: string;
 }
 
+interface ExpirationDataProps {
+    rentalPeriod: number
+    setRentalPeriod: React.Dispatch<React.SetStateAction<number>>
+}
+
+const ExpirationDateRadioButton = (props: ExpirationDataProps) => {
+    let {rentalPeriod, setRentalPeriod} = props;
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRentalPeriod(parseInt(event.target.value));
+    };
+
+    return (
+        <FormControl>
+            <FormLabel id="expiration-date-radio-buttons-group-label">Expiration date</FormLabel>
+            <RadioGroup
+                row
+                aria-labelledby="expiration-date-row-radio-buttons-group-label"
+                name="expiration-date-row-radio-buttons-group"
+                defaultValue={rentalPeriod}
+                value={rentalPeriod}
+                onChange={handleChange}
+            >
+                <FormControlLabel label="5 min(test)" value={ONEMINUTE_SECOND*5} control={<Radio checked={true} />}  />
+                <FormControlLabel label="1 hour" value={ONEHOUR_SECOND} control={<Radio />}  />
+                <FormControlLabel label="1 day" value={ONEDAY_SECOND} control={<Radio />}  />
+             </RadioGroup>
+        </FormControl>
+    );
+}
+
+const insertRentalRequest = async (
+    accountId: string,
+    userId: string,
+    NFTId: string,
+    rentalPeriod: number,
+) => {
+    let POSTbody = JSON.stringify({
+        account_id: accountId,
+        user_id: userId,
+        NFT_id: NFTId,
+        rental_period: rentalPeriod.toString(),
+        timestamp: new Date().getTime().toString(),
+    })
+    
+    let responseFromDB = await fetch("http://172.30.0.1:8090/request/submit", {
+        method: "POST",
+        body:POSTbody
+    })
+
+}
+
 const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
     let {jsonResponse, NFTOwner, NFTUser} = props;
+    const [rentalPeriod, setRentalPeriod] = useState<number>(ONEMINUTE_SECOND * 5);
 
     return (
         <div>
@@ -46,8 +110,11 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
                         cclLogo[jsonResponse.copyright]()
                     }
                 </ListItem>
+                <ExpirationDateRadioButton rentalPeriod={rentalPeriod} setRentalPeriod={setRentalPeriod}/>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
-                    <Button variant="contained" disabled={jsonResponse.copyright == "unlockable content"}>{"Request rental"}</Button>
+                    <Button variant="contained" disabled={jsonResponse.copyright == "unlockable content"} onClick={() => {
+                        insertRentalRequest(NFTOwner, NFTUser, jsonResponse.NFT_id, rentalPeriod);
+                    }}>{"Request rental"}</Button>
                 </ListItem>
             </List>
             ) : (
@@ -103,23 +170,16 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
             method: "GET",
         })
         let jsonResponse = await response.json()
-        console.log(jsonResponse)
-        setJsonResponse(jsonResponse)
 
         const abi = ERC4907ContractInfo.abi;
         const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, connect?.getProvider());
 
-        console.log(contract)
-        console.log(NFTId)
-
         let owner = await contract.ownerOf(NFTId)
-        setNFTOwner(owner)
-
         let user = await contract.userOf(NFTId)
-        setNFTUser(user)
 
-        console.log(owner)
-        console.log(user)
+        setJsonResponse(jsonResponse)
+        setNFTOwner(owner)
+        setNFTUser(user)
 
         setIsLoaded(true)
     }

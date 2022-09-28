@@ -108,8 +108,8 @@ function ListItemLink(props: ListItemLinkProps) {
     );
 }
 
-// variables `since` and `expired` should be milliseconds
-async function testExpirationTime(since:number, expired:number) {
+// All variables should be milliseconds
+async function testExpirationTime(since:number, expired:number, monitorTime:number) {
     const delay = (ms: number) => {
         return new Promise(resolve => setTimeout(resolve, ms))
     }
@@ -122,13 +122,13 @@ async function testExpirationTime(since:number, expired:number) {
         console.log("Current time: ", new Date(currentTime));
 
         if (currentTime >= expired) {
-            console.log("Current time: ", new Date(currentTime), " Expired time: ", new Date(expired))
+            console.log("Since: ", new Date(since), "Current time: ", new Date(currentTime), " Expired time: ", new Date(expired))
             break;
         }
-        console.log("sleep 5 sec")
-        await delay(5000)
+        console.log(`sleep ${monitorTime/1000} sec`)
+        await delay(monitorTime)
     }
 }
 
-export { cclLogo, Connect, ListItemLink, encryptAddress }
+export { cclLogo, Connect, ListItemLink, encryptAddress, testExpirationTime }
 export type { CCLLogo, Attribution, NFTMetaData }
