@@ -21,7 +21,6 @@ import Link from "next/link"
 import { mainListItems, secondaryListItems } from './listItems';
 import { ConnectAccount } from './accountHandler';
 
-
 function Copyright(props: any) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
@@ -93,11 +92,72 @@ export function DashboardContent({children}:{
     const [open, setOpen] = useState(true);
     const [account, setAccount] = useState<string>();
     const [isConnected, setIsConnected] = useState(false)
+    const [notification, setNotification] = useState<Number>(0)
+    const [latestTimestamp, setLatestTimestamp] = useState<string>('0')
+    const [pastTimestamps, setPastTimestamps] = useState<string[]>([]);
+    const [futureTimestamps, setFutureTimestamps] = useState<string[]>([]);
 
     const toggleDrawer = () => {
         setOpen(!open);
     };
 
+    const notificationHandler = async (
+        setPastTimestamps: React.Dispatch<React.SetStateAction<string[]>>,
+        setFutureTimestamps: React.Dispatch<React.SetStateAction<string[]>>
+    ) => {
+        const splitTimestamp = (timestamps: string[], latestTimestamp: string): [string[], string[]] => {
+            let past: string[] = []
+            let future: string[] = []
+
+            timestamps.forEach((timestamp) => {
+                timestamp < latestTimestamp ? past : future.push(timestamp)
+            })
+            console.log("past:", past)
+            console.log("future:", future)
+
+            return [past, future]
+        }
+
+        if (account) {
+            let rentalLogs = await fetch("http://172.30.0.1:8090/rental-logs/" + account, {
+                method: "GET",
+            })
+            let rentalLogsJson = await rentalLogs.json()
+
+            let userLogs = await fetch("http://172.30.0.1:8090/user-logs/" + account, { 
+                method: "GET",
+            })
+            let userLogsJson = await userLogs.json()
+    
+            let timestamps = rentalLogsJson["timestamps"] ? rentalLogsJson["timestamps"] : []
+            let newLatestTimestamp = userLogsJson["latest_timestamp"] ? userLogsJson["latest_timestamp"] : latestTimestamp
+            console.log(rentalLogsJson)
+            console.log(userLogsJson)
+            console.log(newLatestTimestamp)
+            updateLatestTimestamp(setLatestTimestamp, newLatestTimestamp)
+
+            let [past, future] = splitTimestamp(timestamps, latestTimestamp)
+            setPastTimestamps(past)
+            setFutureTimestamps(future)
+        }
+
+    }
+
+    const updateLatestTimestamp = async (setLatestTimestamp: React.Dispatch<React.SetStateAction<string>>, latestTimestamp: string) => {
+        setLatestTimestamp(latestTimestamp)
+
+        let PUTbody = JSON.stringify({
+            account_id: account,
+            latest_timestamp: latestTimestamp
+        })
+
+        let response = await fetch("http://172.30.0.1:8090/user-logs/" + account, { 
+            method: "PUT",
+            body:PUTbody
+        })
+        console.log(response)
+        console.log("Update latest timestamp: ", latestTimestamp)
+    }
 
 
     return (
@@ -133,9 +193,21 @@ export function DashboardContent({children}:{
                                 <a>Dashboard</a>
                             </Link>
                         </Typography>
-                        <ConnectAccount isConnected={isConnected} setIsConnected={setIsConnected} account={account} setAccount={setAccount} />
+                        <ConnectAccount
+                            isConnected={isConnected}
+                            setIsConnected={setIsConnected}
+                            account={account}
+                            setAccount={setAccount}
+                            notificationHandler={notificationHandler}
+                            setPastTimestamps={setPastTimestamps}
+                            setFutureTimestamps={setFutureTimestamps}
+                        />
                         <IconButton color="inherit">
-                            <Badge badgeContent={4} color="secondary">
+                            <Badge badgeContent={futureTimestamps.length} color="secondary" onClick={
+                                () =>  {
+                                    updateLatestTimestamp(setLatestTimestamp, new Date().getTime().toString());
+                                }
+                            }>
                                 <NotificationsIcon />
                             </Badge>
                         </IconButton>

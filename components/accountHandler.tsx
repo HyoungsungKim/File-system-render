@@ -14,14 +14,20 @@ interface ConnectProps {
     setIsConnected: React.Dispatch<React.SetStateAction<boolean>>
     account: string| undefined
     setAccount: React.Dispatch<React.SetStateAction<string | undefined>>
+    notificationHandler: (setPastTimestamps: React.Dispatch<React.SetStateAction<string[]>>, setFutureTimestamps: React.Dispatch<React.SetStateAction<string[]>>) => Promise<void>
+    setPastTimestamps: React.Dispatch<React.SetStateAction<string[]>>,
+    setFutureTimestamps: React.Dispatch<React.SetStateAction<string[]>>
 }
 
 function ConnectAccount(props: ConnectProps): JSX.Element {
-    const {isConnected, setIsConnected, account, setAccount} = props
+    const {isConnected, setIsConnected, account, setAccount, notificationHandler, setPastTimestamps, setFutureTimestamps} = props
 
     useEffect(() => {
         connect = new Connect(window.ethereum);
-    }, [])
+        if (account) {
+            notificationHandler(setPastTimestamps, setFutureTimestamps)
+        }
+    }, [account])
 
     const connectMetamask = async () => {
         connect = new Connect(window.ethereum);
@@ -35,7 +41,7 @@ function ConnectAccount(props: ConnectProps): JSX.Element {
 
     const clickHandler = async () => {
         if (!account) {
-            connectMetamask()
+            await connectMetamask()
             console.log("Account", account);
         }
         //userAccountComponent = document.getElementById("userAccount") as HTMLSpanElement;
@@ -49,7 +55,9 @@ function ConnectAccount(props: ConnectProps): JSX.Element {
         </div>
         ) : (
             <div>
-                <Button variant="outlined" size="small" color="inherit" onClick={clickHandler}>{"Connect account"}</Button>
+                <Button variant="outlined" size="small" color="inherit" onClick={async () => {
+                    await clickHandler()
+                }}>{"Connect account"}</Button>
             </div>
         )
     )

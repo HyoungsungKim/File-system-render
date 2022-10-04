@@ -34,7 +34,8 @@ interface MetadataInfoProps {
     jsonResponse: any;
     NFTOwner: string
     NFTUser: string;
-}
+    requestorId: string;
+ }
 
 interface ExpirationDataProps {
     rentalPeriod: number
@@ -70,12 +71,14 @@ const ExpirationDateRadioButton = (props: ExpirationDataProps) => {
 const insertRentalRequest = async (
     accountId: string,
     userId: string,
+    requestorId: string,
     NFTId: string,
     rentalPeriod: number,
 ) => {
     let POSTbody = JSON.stringify({
         account_id: accountId,
         user_id: userId,
+        requestor_id: requestorId,
         NFT_id: NFTId,
         rental_period: rentalPeriod.toString(),
         timestamp: new Date().getTime().toString(),
@@ -89,7 +92,7 @@ const insertRentalRequest = async (
 }
 
 const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
-    let {jsonResponse, NFTOwner, NFTUser} = props;
+    let {jsonResponse, NFTOwner, NFTUser, requestorId} = props;
     const [rentalPeriod, setRentalPeriod] = useState<number>(ONEMINUTE_SECOND * 5);
 
     return (
@@ -113,7 +116,7 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
                 <ExpirationDateRadioButton rentalPeriod={rentalPeriod} setRentalPeriod={setRentalPeriod}/>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
                     <Button variant="contained" disabled={jsonResponse.copyright == "unlockable content"} onClick={() => {
-                        insertRentalRequest(NFTOwner, NFTUser, jsonResponse.NFT_id, rentalPeriod);
+                        insertRentalRequest(NFTOwner, NFTUser, requestorId, jsonResponse.NFT_id, rentalPeriod);
                     }}>{"Request rental"}</Button>
                 </ListItem>
             </List>
@@ -150,7 +153,8 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
     let [NFTId, setNFTId] = useState<string>("");
     let [NFTOwner, setNFTOwner] = useState<string>("")
     let [NFTUser, setNFTUser] = useState<string>("");
-    
+    let [requestorId, setRequestorId] = useState<string|undefined>()
+
     let [isLoaded, setIsLoaded] = useState<boolean>(false)
     let [loadCircular, setLoadCircular] = useState<boolean>(false)
 
@@ -176,11 +180,12 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
 
         let owner = await contract.ownerOf(NFTId)
         let user = await contract.userOf(NFTId)
+        
 
         setJsonResponse(jsonResponse)
         setNFTOwner(owner)
         setNFTUser(user)
-
+        setRequestorId(await connect?.getSigner()?.getAddress())
         setIsLoaded(true)
     }
 
@@ -192,7 +197,7 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
             </Stack>
              {
                 isLoaded ?
-                    <MetadataInfoHandler jsonResponse={jsonResponse} NFTOwner={NFTOwner} NFTUser={NFTUser}/> 
+                    <MetadataInfoHandler jsonResponse={jsonResponse} NFTOwner={NFTOwner} NFTUser={NFTUser} requestorId={requestorId!}/> 
                 : (
                     loadCircular ?
                         <Box sx={{ m: 1, width: "100%" }}>

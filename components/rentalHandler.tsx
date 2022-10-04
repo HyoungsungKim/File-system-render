@@ -104,10 +104,10 @@ const rentalHandler = async (
     const NFTOwner: string = await contract.ownerOf(nftId)
     const NFTUser: string = await contract.userOf(nftId)
 
-    let rentalAvaliable = await checkRentalAvailable(signerAddress, NFTOwner, NFTUser);
+    let rentalAvailable = await checkRentalAvailable(signerAddress, NFTOwner, NFTUser);
     // rental for 180 sec
 
-    if (rentalAvaliable) {
+    if (rentalAvailable) {
         let rentalSince = new Date().getTime();                         // Miliseconds
         let expiration = Math.floor(rentalSince/1000) + rentalPeriod    // Seconds
         //let testExpires = Math.floor(new Date().getTime() / 1000) + 60;

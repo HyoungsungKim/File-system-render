@@ -58,7 +58,7 @@ interface FileProps {
     });
 }
 
-// Post Metadada json file to storage
+// Post Metadata json file to storage
 async function postMetadata(address: string, URI: string, metadata: NFTMetaData) {
     const formData = new FormData();
     let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
@@ -83,7 +83,7 @@ async function mintERC721(
     const abi = ERC4907ContractInfo.abi;
     
     //const bytecode = ERC721ContractInfo.bytecode;
-    const byteconde = ERC4907ContractInfo.bytecode;
+    const bytecode = ERC4907ContractInfo.bytecode;
     
     const signer = connect!.getSigner();
     // ERC4907 contract "0x0354fab135deE2b7aCc82c36047C1C157cE98B1B"
