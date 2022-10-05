@@ -15,11 +15,14 @@ import {Link as MUIlink} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-
 import Link from "next/link"
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+
 
 import { mainListItems, secondaryListItems } from './listItems';
 import { ConnectAccount } from './accountHandler';
+import {splitTimestamp} from './utils'
 
 function Copyright(props: any) {
     return (
@@ -92,37 +95,43 @@ export function DashboardContent({children}:{
     const [open, setOpen] = useState(true);
     const [account, setAccount] = useState<string>();
     const [isConnected, setIsConnected] = useState(false)
-    const [notification, setNotification] = useState<Number>(0)
+
+    const [rentalLogsJson, setRentalLogsJson] = useState<any>()
     const [latestTimestamp, setLatestTimestamp] = useState<string>('0')
     const [pastTimestamps, setPastTimestamps] = useState<string[]>([]);
     const [futureTimestamps, setFutureTimestamps] = useState<string[]>([]);
 
+    const [badgeCounters, setBadgeCounters] = useState<number>(futureTimestamps.length)
+    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+    const menuOpen = Boolean(anchorEl);
+
+    useEffect( () => {
+        setBadgeCounters(futureTimestamps.length)
+    }, [futureTimestamps])
+
     const toggleDrawer = () => {
         setOpen(!open);
     };
+    
+    const handleNotiClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleNotiClose = () => {
+        setAnchorEl(null);
+    };
+
 
     const notificationHandler = async (
         setPastTimestamps: React.Dispatch<React.SetStateAction<string[]>>,
         setFutureTimestamps: React.Dispatch<React.SetStateAction<string[]>>
     ) => {
-        const splitTimestamp = (timestamps: string[], latestTimestamp: string): [string[], string[]] => {
-            let past: string[] = []
-            let future: string[] = []
-
-            timestamps.forEach((timestamp) => {
-                timestamp < latestTimestamp ? past : future.push(timestamp)
-            })
-            console.log("past:", past)
-            console.log("future:", future)
-
-            return [past, future]
-        }
-
         if (account) {
             let rentalLogs = await fetch("http://172.30.0.1:8090/rental-logs/" + account, {
                 method: "GET",
             })
             let rentalLogsJson = await rentalLogs.json()
+
 
             let userLogs = await fetch("http://172.30.0.1:8090/user-logs/" + account, { 
                 method: "GET",
@@ -131,14 +140,14 @@ export function DashboardContent({children}:{
     
             let timestamps = rentalLogsJson["timestamps"] ? rentalLogsJson["timestamps"] : []
             let newLatestTimestamp = userLogsJson["latest_timestamp"] ? userLogsJson["latest_timestamp"] : latestTimestamp
-            console.log(rentalLogsJson)
-            console.log(userLogsJson)
-            console.log(newLatestTimestamp)
-            updateLatestTimestamp(setLatestTimestamp, newLatestTimestamp)
 
-            let [past, future] = splitTimestamp(timestamps, latestTimestamp)
+            let [past, future] = splitTimestamp(timestamps, newLatestTimestamp)
+            setRentalLogsJson(rentalLogsJson)
             setPastTimestamps(past)
             setFutureTimestamps(future)
+
+            setBadgeCounters(future.length)
+            setLatestTimestamp(newLatestTimestamp)
         }
 
     }
@@ -157,8 +166,74 @@ export function DashboardContent({children}:{
         })
         console.log(response)
         console.log("Update latest timestamp: ", latestTimestamp)
+
+        let [past, future] = splitTimestamp(futureTimestamps, latestTimestamp)
+
+        console.log("future timestamps", futureTimestamps)
+        setPastTimestamps(pastTimestamps.concat(past))
+        setFutureTimestamps(future)
+        setBadgeCounters(future.length)
     }
 
+    const RentalInfo = (): JSX.Element => {
+        interface RentalLogById {
+            requestorId:    string;
+            nftId:          string;
+            rentalPeriod:   string;
+            timestamp:      string;
+        }
+
+        if (rentalLogsJson["timestamps"]) {
+            let accountId = rentalLogsJson["account_id"]
+            let rentalLogsById: RentalLogById[] = []
+
+            for (let i = 0; i < rentalLogsJson["timestamps"].length; i++) {
+                let rentalLog: RentalLogById = {
+                    requestorId: rentalLogsJson["requestor_ids"][i].slice(0, 6) + "...",
+                    nftId: rentalLogsJson["nft_ids"][i],
+                    rentalPeriod: rentalLogsJson["rental_periods"][i],
+                    timestamp: new Date(parseInt(rentalLogsJson["timestamps"][0])).toDateString(),
+                }
+
+                rentalLogsById.push(rentalLog)
+            }
+
+            return (
+                <div>{
+                    rentalLogsById.map((rentalLogById, index) => (
+                        <MenuItem onClick={handleNotiClose}>
+                            requestor_id: {rentalLogById["requestorId"]},
+                            nft_id: {rentalLogById["nftId"]},
+                            rentalPeriod: {rentalLogById["rentalPeriod"]},
+                            request_date: {rentalLogById["timestamp"]}
+                        </MenuItem>  
+                    ))}
+                </div>
+            )
+        } else {
+            return (
+                <div>
+                    <MenuItem onClick={handleNotiClose}>No rental request</MenuItem>
+                </div>
+            )
+        }         
+    }
+
+    const DisplayNotification = (): JSX.Element => {
+        return (
+            <Menu
+                id="basic-menu"
+                anchorEl={anchorEl}
+                open={menuOpen}
+                onClose={handleNotiClose}
+                MenuListProps={{
+                    'aria-labelledby': 'basic-button',
+                }}
+            >                    
+                <RentalInfo />
+            </Menu>
+        )
+    }
 
     return (
         <ThemeProvider theme={mdTheme}>
@@ -202,15 +277,24 @@ export function DashboardContent({children}:{
                             setPastTimestamps={setPastTimestamps}
                             setFutureTimestamps={setFutureTimestamps}
                         />
-                        <IconButton color="inherit">
-                            <Badge badgeContent={futureTimestamps.length} color="secondary" onClick={
-                                () =>  {
-                                    updateLatestTimestamp(setLatestTimestamp, new Date().getTime().toString());
-                                }
-                            }>
-                                <NotificationsIcon />
-                            </Badge>
-                        </IconButton>
+                        <div>
+                            <IconButton
+                                color="inherit"
+                                aria-controls={menuOpen ? 'basic-menu' : undefined}
+                                aria-haspopup="true"
+                                aria-expanded={menuOpen ? 'true' : undefined}
+                                onClick={handleNotiClick}
+                            >
+                                <Badge badgeContent={badgeCounters} color="secondary" onClick={
+                                    () =>  {
+                                        updateLatestTimestamp(setLatestTimestamp, new Date().getTime().toString());
+                                    }
+                                }>
+                                    <NotificationsIcon />
+                                </Badge>
+                            </IconButton>
+                            <DisplayNotification />
+                        </div>
                     </Toolbar>
                 </AppBar>
                 <Drawer variant="permanent" open={open}>
@@ -256,6 +340,8 @@ export function DashboardContent({children}:{
                     </Container>
                 </Box>
             </Box>
+            <DisplayNotification />
+
         </ThemeProvider>
 
     );

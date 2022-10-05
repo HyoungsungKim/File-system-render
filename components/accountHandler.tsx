@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from 'react';
 import { ethers } from 'ethers';
-import { parseUnits } from 'ethers/lib/utils';  
 
 import {Connect} from "./utils"
 import Button from '@mui/material/Button';

@@ -108,6 +108,20 @@ function ListItemLink(props: ListItemLinkProps) {
     );
 }
 
+function splitTimestamp(timestamps: string[], latestTimestamp: string): [string[], string[]] {
+    let past: string[] = []
+    let future: string[] = []
+
+    timestamps.forEach((timestamp) => {
+        timestamp < latestTimestamp ? past.push(timestamp) : future.push(timestamp)
+    })
+    console.log("latestTimestamp: ", latestTimestamp)
+    console.log("past:", past)
+    console.log("future:", future)
+
+    return [past, future]
+}
+
 // All variables should be milliseconds
 async function testExpirationTime(since:number, expired:number, monitorTime:number) {
     const delay = (ms: number) => {
@@ -130,5 +144,5 @@ async function testExpirationTime(since:number, expired:number, monitorTime:numb
     }
 }
 
-export { cclLogo, Connect, ListItemLink, encryptAddress, testExpirationTime }
+export { cclLogo, Connect, ListItemLink, encryptAddress, splitTimestamp, testExpirationTime }
 export type { CCLLogo, Attribution, NFTMetaData }

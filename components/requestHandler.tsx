@@ -3,7 +3,7 @@ import type { NFTMetaData } from './utils';
 import { cclLogo, Connect } from './utils';
 import { Contract, } from 'ethers';
 
-import {Alert, Box, Button, Card, CardMedia, TextField} from '@mui/material';
+import {Alert, AlertColor, Box, Button, Card, CardMedia, TextField} from '@mui/material';
 import {LinearProgress } from '@mui/material';
 
 import {Grid, Paper, Stack} from '@mui/material';
@@ -14,6 +14,7 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
+import Snackbar from '@mui/material/Snackbar';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
@@ -74,26 +75,57 @@ const insertRentalRequest = async (
     requestorId: string,
     NFTId: string,
     rentalPeriod: number,
+    setSnackbarSeverity: React.Dispatch<React.SetStateAction<AlertColor>>
 ) => {
-    let POSTbody = JSON.stringify({
-        account_id: accountId,
-        user_id: userId,
-        requestor_id: requestorId,
-        NFT_id: NFTId,
-        rental_period: rentalPeriod.toString(),
-        timestamp: new Date().getTime().toString(),
-    })
-    
-    let responseFromDB = await fetch("http://172.30.0.1:8090/request/submit", {
-        method: "POST",
-        body:POSTbody
-    })
+    try{
+        let POSTbody = JSON.stringify({
+            account_id: accountId,
+            user_id: userId,
+            requestor_id: requestorId,
+            NFT_id: NFTId,
+            rental_period: rentalPeriod.toString(),
+            timestamp: new Date().getTime().toString(),
+        })
+        
+        let responseFromDB = await fetch("http://172.30.0.1:8090/request/submit", {
+            method: "POST",
+            body:POSTbody
+        })
+
+        setSnackbarSeverity("success")
+    } catch(err) {
+        setSnackbarSeverity("error")
+    }
 
 }
 
 const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
     let {jsonResponse, NFTOwner, NFTUser, requestorId} = props;
     const [rentalPeriod, setRentalPeriod] = useState<number>(ONEMINUTE_SECOND * 5);
+    const [snackbarOpen, setSnackbarOpen] = useState(false)
+    // type AlertColor = "error" | "success" | "info" | "warning"
+    const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>("success")
+
+    const handleClick = () => {
+        setSnackbarOpen(true);
+    }
+
+    const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+    
+        setSnackbarOpen(false);
+    }
+
+    // Use this component when snackbar needs specific message.
+    const snackbarHandler = (severity: AlertColor) : JSX.Element => { 
+        if (severity === "success") {
+            return <Alert severity={severity} onClose={handleClose}>{"Success"}</Alert> 
+        } else {
+            return <Alert severity={severity} onClose={handleClose}>{severity}</Alert> 
+        }
+    }
 
     return (
         <div>
@@ -116,8 +148,12 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
                 <ExpirationDateRadioButton rentalPeriod={rentalPeriod} setRentalPeriod={setRentalPeriod}/>
                 <ListItem style={{display:'flex', justifyContent:'center'}} >
                     <Button variant="contained" disabled={jsonResponse.copyright == "unlockable content"} onClick={() => {
-                        insertRentalRequest(NFTOwner, NFTUser, requestorId, jsonResponse.NFT_id, rentalPeriod);
+                        insertRentalRequest(NFTOwner, NFTUser, requestorId, jsonResponse.NFT_id, rentalPeriod, setSnackbarSeverity);
+                        handleClick()
                     }}>{"Request rental"}</Button>
+                    <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleClose} >
+                        <Alert severity={snackbarSeverity} onClose={handleClose}>{snackbarSeverity}</Alert> 
+                    </Snackbar>
                 </ListItem>
             </List>
             ) : (
@@ -265,7 +301,7 @@ const RequestLayout = (): JSX.Element => {
                         display: 'flex',
                         flexDirection: 'column',
                         height: '100%',
-                        widht: '100%',
+                        width: '100%',
                     }}
                 >                
                 </Paper>

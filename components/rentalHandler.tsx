@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Contract, ContractFactory, BigNumber } from 'ethers';
+import { Contract, BigNumber } from 'ethers';
 
 import { cclLogo, Connect, testExpirationTime } from './utils';
 

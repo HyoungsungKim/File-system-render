@@ -4,12 +4,13 @@ import { Contract, ContractFactory } from 'ethers';
 import { Connect } from './utils';
 import type { Attribution, NFTMetaData} from './utils';
 
-import { Alert, Button, Card, CardActions, CardContent, CardMedia, Divider } from '@mui/material';
+import { Alert, AlertColor, Button, Card, CardActions, CardContent, CardMedia, Divider } from '@mui/material';
 import {TextField, Typography, MenuItem, Switch, FormControlLabel} from '@mui/material';
 import {Radio, RadioGroup, FormControl, FormLabel} from '@mui/material';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Snackbar from '@mui/material/Snackbar';
 
 //import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
@@ -19,6 +20,7 @@ let connect: Connect | undefined = undefined;
 
 interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
+    setSuccessCreate: React.Dispatch<React.SetStateAction<boolean>>
 }
 
  // post metadata to DB
@@ -79,24 +81,15 @@ async function mintERC721(
     nftMetaData: NFTMetaData,
     copyright: string
 ): Promise<Contract> {
-    //const abi = ERC721ContractInfo.abi;
     const abi = ERC4907ContractInfo.abi;
-    
-    //const bytecode = ERC721ContractInfo.bytecode;
     const bytecode = ERC4907ContractInfo.bytecode;
     
     const signer = connect!.getSigner();
-    // ERC4907 contract "0x0354fab135deE2b7aCc82c36047C1C157cE98B1B"
     const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, signer);
-    //ERC721 contract
-    //const contract = new Contract("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83", abi, signer);
     
     const metaDataURI = selectedFile!.name + ".metadata.json"
     const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
 
-    //contract.attach("0xc9D2D16d22E06fd11ceEF2FB119d7dBBA0aa7C83")
-    //contract.on("transfer", (from, to, tokenid) => {...})
-    //const URI = URIInput.value;
     const ownerAddress = await signer!.getAddress();
     const signature = await signer!.signMessage(ownerAddress);
 
@@ -138,7 +131,7 @@ async function mintERC721(
 }   
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
-    let { setFile }: FileProps = props;
+    let { setFile, setSuccessCreate }: FileProps = props;
 
     useEffect(() => {
         connect = new Connect(window.ethereum);
@@ -159,8 +152,9 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
         setCopyright(event.target.value)
     }
 
+
     // Select file and change states
-    function changeHandler(event: React.ChangeEvent<HTMLInputElement>) {
+    const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         let file = event.target.files;
         if (file) {
             setSelectedFile(file[0]);
@@ -191,6 +185,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             console.log("Call mint ERC721")
             if (isSelected) {
                 await mintERC721(connect, selectedFile!, unlockableContent, nftMetaData, copyright);                      
+                setSuccessCreate(true);
             }
          
 
@@ -265,6 +260,39 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 const CreateLayout = (): JSX.Element => {
     const [file, setFile] = useState<File | undefined>(undefined)
 
+    // type AlertColor = "error" | "success" | "info" | "warning"
+    const [snackbarOpen, setSnackbarOpen] = useState(false)
+    const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>("success")
+    const [successCreate, setSuccessCreate] = useState(false)
+
+    useEffect(() => {
+        if (successCreate) {
+            handleClick()
+            setSuccessCreate(false)
+        }
+    }, [successCreate])
+
+    const handleClick = () => {
+        setSnackbarOpen(true);
+    }
+
+    const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+    
+        setSnackbarOpen(false);
+    }
+
+    // Use this component when snackbar needs specific message.
+    const snackbarHandler = (severity: AlertColor) : JSX.Element => { 
+        if (severity === "success") {
+            return <Alert severity={severity} onClose={handleClose}>{"Success"}</Alert> 
+        } else {
+            return <Alert severity={severity} onClose={handleClose}>{severity}</Alert> 
+        }
+    }
+
     return (
         <Grid container spacing={3}>
             {/* Chart */}
@@ -303,7 +331,10 @@ const CreateLayout = (): JSX.Element => {
                         height: 600,
                     }}
                 >
-                    <UploadAndMint setFile={setFile} />
+                    <UploadAndMint setFile={setFile} setSuccessCreate={setSuccessCreate} />
+                    <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleClose} >
+                        <Alert severity={"success"} onClose={handleClose}>{"success"}</Alert> 
+                    </Snackbar>
                 </Paper>
             </Grid>
         </Grid>
