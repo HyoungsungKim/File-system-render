@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Contract, ContractFactory } from 'ethers';
 
-import { Connect } from './utils';
+import { Connect, mintERC721} from './utils';
 import type { Attribution, NFTMetaData} from './utils';
 
-import { Alert, AlertColor, Button, Card, CardActions, CardContent, CardMedia, Divider } from '@mui/material';
+import {login, requestDownloadURL} from './externalAPI';
+
+import { Alert, AlertColor, Button, Box, Card, CardActions, CardContent, CardMedia, CircularProgress, Divider } from '@mui/material';
 import {TextField, Typography, MenuItem, Switch, FormControlLabel} from '@mui/material';
 import {Radio, RadioGroup, FormControl, FormLabel} from '@mui/material';
 import Grid from '@mui/material/Grid';
@@ -12,8 +14,10 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Snackbar from '@mui/material/Snackbar';
 
+import InputLabel from '@mui/material/InputLabel';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 //import ERC721ContractInfo from './contract/ERC721/MyNFT.json';
-import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
+
 
 
 let connect: Connect | undefined = undefined;
@@ -23,112 +27,14 @@ interface FileProps {
     setSuccessCreate: React.Dispatch<React.SetStateAction<boolean>>
 }
 
- // post metadata to DB
- async function uploadHandler(
-        selectedFile:File,
-        ownerAddress: string,
-        title: string,
-        signature: string,
-        copyright: string,
-        tokenId: string
-) {
-    const formData = new FormData();
+const parseInfo = (allMusicInfo: object[], objKey:string): string[] => {
+    let parsedList: string[] = []
+    allMusicInfo.forEach((musicInfo) => {
+        parsedList.push(musicInfo[objKey as keyof object])
+    })
 
-    formData.append('file', selectedFile!);
-    console.log(formData);
-
-    let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
-        method: "POST",
-        body: formData,
-    });
-
-    // TODO: Implement write data to DB with file hash
-    let POSTbody = JSON.stringify({
-        account_id: ownerAddress,
-        file_name: selectedFile!.name,
-        signature: signature,
-        type: selectedFile!.type,
-        URI: ownerAddress + "/" + selectedFile!.name,
-        NFTtitle: title,
-        NFT_id: tokenId,
-        Copyright: copyright,
-    });
-
-    let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
-        method: "POST",
-        body: POSTbody,
-    });
+    return parsedList
 }
-
-// Post Metadata json file to storage
-async function postMetadata(address: string, URI: string, metadata: NFTMetaData) {
-    const formData = new FormData();
-    let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
-    let metaDataFile = new File([metaDataBlob], URI);
-
-    formData.append('file', metaDataFile);
-
-    let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-        method: "POST",
-        body: formData,
-    });
-}
-
-async function mintERC721(
-    connect: Connect | undefined,
-    selectedFile: File,
-    unlockableContent: boolean,
-    nftMetaData: NFTMetaData,
-    copyright: string
-): Promise<Contract> {
-    const abi = ERC4907ContractInfo.abi;
-    const bytecode = ERC4907ContractInfo.bytecode;
-    
-    const signer = connect!.getSigner();
-    const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, signer);
-    
-    const metaDataURI = selectedFile!.name + ".metadata.json"
-    const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
-
-    const ownerAddress = await signer!.getAddress();
-    const signature = await signer!.signMessage(ownerAddress);
-
-    const mintingResult = await contract.mintNFT(ownerAddress, metaDataURI);
-    const receipt = await mintingResult.wait();
-    
-    //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
-    let hexTokenId = receipt.logs[0].topics[3]
-    let tokenId_dec = parseInt(hexTokenId, 16).toString()
-    console.log(tokenId_dec);
-
-    await uploadHandler(selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec);
-    if (unlockableContent) {
-        console.log("Upload metadata file of unlockable content");
-
-        let unlockableMetaData: NFTMetaData = {
-            title: nftMetaData.title,
-            image: nftMetaData.image,
-            NFTId: tokenId_dec,
-            unlockableContent: nftMetaData.unlockableContent,
-            attribution: nftMetaData.attribution,
-        };
-        nftMetaData.image = "temp";
-
-        console.log("Generate unlockable content metadata...");
-        await postMetadata(ownerAddress, unlockableMetDataURI, unlockableMetaData);
-    }
-
-    nftMetaData.NFTId = tokenId_dec;
-    console.log("Upload metadata file");
-    await postMetadata(ownerAddress, metaDataURI, nftMetaData);
-
-    console.log(nftMetaData);
-    console.log(JSON.stringify(nftMetaData));
-    console.log(selectedFile);
-
-
-    return contract;
-}   
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
     let { setFile, setSuccessCreate }: FileProps = props;
@@ -144,25 +50,128 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const [title, setTitle] = useState<string | undefined>(undefined) 
     const [copyright, setCopyright] = useState<string>("CC BY") 
 
-    const textFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const [userId, setUserId] = useState<string>() 
+    const [userPassword, setUserPassword] = useState<string>()
+
+    const [musicId, setMusicId] = useState<string>()
+    const [loginSuccess, setLoginSuccess] = useState<boolean>()
+    const [musicIdList, setMusicIdList] = useState<string[]>()
+    const [musicNameList, setMusicNameList] = useState<string[]>()
+
+    const [snackbarOpen, setSnackbarOpen] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [success, setSuccess] = useState(true)
+
+    const userIdFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setUserId(event.target.value);
+    }
+
+    const userPasswordFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setUserPassword(event.target.value);
+    }
+
+    const musicIdFieldHandler = (event: SelectChangeEvent) => {
+        setMusicId(event.target.value);
+    }
+
+    /*
+    const NFTTitleFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
     }
+    */
 
     const radioButtonHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setCopyright(event.target.value)
     }
 
+    const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+    
+        setSnackbarOpen(false);
+    }
+
+    const loginHandler = async () => {
+        const loginResult = await login(userId!, userPassword!)
+        console.log(loginResult)
+        if (loginResult) {
+            setLoginSuccess(loginResult)
+
+            setLoading(true)
+            setSuccess(false)
+
+            const response = await fetch("http://121.67.187.148:3333/allMusicInfo?memberID=" + userId, {
+                method: "GET"
+            })
+            const jsonResponse = await response.json()
+            console.log(jsonResponse)
+            
+            setLoading(false)
+            setSuccess(true)
+
+            if(jsonResponse["status_code"] == 200) {
+                const musidIdList = parseInfo(jsonResponse["data"], "musicID")
+                const musidNameList = parseInfo(jsonResponse["data"], "musicName")
+
+                setMusicIdList(musidIdList)
+                setMusicNameList(musidNameList)
+
+                console.log(musidIdList)
+                console.log(musidNameList)
+            }
+        } else {
+            setSnackbarOpen(true);
+        }
+    }
 
     // Select file and change states
     const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         let file = event.target.files;
         if (file) {
-            setSelectedFile(file[0]);
+            const renamedFIle = new File([file[0]], musicId! + "." + file[0].type.slice(-3), {                
+                type: file[0].type
+            })
+            //setSelectedFile(file[0]);
+            setSelectedFile(renamedFIle)
             setIsSelected(true);
 
-            setFile(file[0]);
+            //setFile(file[0]);
+            setFile(renamedFIle)
             setTargetURI(event.target.value);
-            console.log(URL.createObjectURL(file[0]));
+            console.log(URL.createObjectURL(renamedFIle));
+        }
+    }
+
+    const downloadHandler = async (connect: Connect | undefined) => {
+        if(musicId) {
+            const signer = connect!.getSigner()
+            let address = await signer!.getAddress()
+
+            let jsonResponse = await requestDownloadURL(musicId)
+            console.log(jsonResponse)
+
+            const url = jsonResponse["mp3_url "]
+            const formData = new FormData()
+            const fileFromJubaesi = await fetch(url, {
+                method: "GET",
+            })
+            console.log(fileFromJubaesi)
+            const mp3Blob = await fileFromJubaesi.blob()
+            //const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3))
+            console.log(url.slice(-3))
+            const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3), {                
+                type: url.slice(-3)
+            })
+            formData.append('file',  mp3File)
+
+            console.log(formData)
+            const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+                method: "POST",
+                body: formData,
+            });
+
+            console.log(response)
         }
     }
 
@@ -199,11 +208,54 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     if (connect !== undefined) {
         return (
             <div>
+                {!loginSuccess ? (
+                    <Stack spacing={1} direction="column" sx={{ my:1 }}>
+                            <TextField id="Id" label="Id" variant="standard" onChange={userIdFieldHandler}/>
+                            <TextField id="Password" label="Password" variant="standard" type="password" onChange={userPasswordFieldHandler} />
+                            <Button variant="contained" component="label" onClick={loginHandler}> Get Data </Button>        
+                            <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleClose} message={"Login fail"} />
+                    </Stack>
+                    ) : ( success ? (
+                            <Stack spacing={1} direction="column" sx={{ my:1 }}>
+                                <Box sx={{ minWidth: 120 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="SelectMusicLabel">Select a music</InputLabel>
+                                        {
+                                            musicIdList ? (
+                                                <Select
+                                                    labelId="SelectMusic"
+                                                    id="SelectMusic"
+                                                    label="Select a music"
+                                                    variant="standard"
+                                                    value={musicIdList[0]}
+                                                    onChange={musicIdFieldHandler}
+                                                >{
+                                                    musicIdList.map((musicId, idx) => (
+                                                        <MenuItem value={musicId} key={musicId}>{"["+ musicId +"] " + musicNameList![idx]}</MenuItem>
+                                                    ))
+                                                }</Select>): (
+                                                    <Typography align="center" gutterBottom>{"There is no music"}</Typography>
+                                                )
+                                        }                                    
+                                    </FormControl>
+                                </Box>
+                            </Stack>
+                        ) : (
+                            <Typography align="center" gutterBottom>
+                                <CircularProgress />
+                            </Typography>
+                        )
+                    )
+                }
+                <Stack  spacing={1} direction="column" sx={{ my:1 }}>                    
+                    <Button variant="contained" component="label" onClick={() => downloadHandler(connect)}> Download </Button>
+                </Stack>
                 <Stack spacing={1} direction="row" sx={{ my: 1}}>
-                    <Button variant="contained" component="label" > Select file
-                        <input type="file" name="file" hidden onChange={changeHandler} />
-                    </Button>
-
+                    <Box textAlign='center'>
+                        <Button variant="contained" component="label" > {"Select \n Thumbnail"}
+                            <input type="file" name="file" hidden onChange={changeHandler} />
+                        </Button>
+                    </Box>
                     <Button variant="contained" type="submit" onClick={
                         () => submissionHandler(connect)
                     }>{"Create"}
@@ -212,9 +264,11 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 <Divider variant="middle" />
                 {isSelected ? (
                     <div>
-                        <TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/>
+                        {
+                            //<TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/> 
+                            //<TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>                        
+                        }
                         <TextField id="FileType" label="File type" variant="standard" defaultValue={selectedFile!.type} disabled/>
-                        <TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>
                         <div>
                             <FormControlLabel control={<Switch onChange= {() => { 
                                 isUnlockableContent(!unlockableContent)
@@ -242,12 +296,12 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                         </div>
 
                         <div>
-                            <TextField id="NFT-title" label="Title" variant="standard" onChange={textFieldHandler} />
+                            <TextField id="NFT-title" label="Title" variant="standard" defaultValue={musicId} disabled />
                         </div>
                     </div>
                     
                 ) : (
-                    <Alert severity="info">Select a file</Alert>
+                    <Alert severity="info">Select a thumbnail</Alert>
                 )}
                 
             </div>

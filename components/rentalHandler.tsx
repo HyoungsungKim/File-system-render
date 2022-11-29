@@ -20,6 +20,8 @@ import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
 let connect: Connect | undefined = undefined;
 
+// Deployed in Goerli
+const CONTRACT_ADDRESS = "0xA05D10F3A145c38928BB298b49502886ab8f601f"
 const NOTRENTED: string = "0x0000000000000000000000000000000000000000"
 
 const ONEMINUTE_SECOND = 60
@@ -98,7 +100,7 @@ const rentalHandler = async (
 ) => {
     const abi = ERC4907ContractInfo.abi;
     const signer = connect!.getSigner();
-    const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, signer);
+    const contract = new Contract(CONTRACT_ADDRESS, abi, signer);
     const signerAddress = await signer!.getAddress()
 
     const NFTOwner: string = await contract.ownerOf(nftId)

@@ -1,6 +1,11 @@
-import * as React from 'react';
-import { ethers } from 'ethers';
-import { Button, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import React, {useState, useEffect} from 'react';
+import { Contract, ethers } from 'ethers';
+import {Alert, AlertColor, Box, Button, Card, CardMedia, TextField} from '@mui/material';
+import { ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import {LinearProgress } from '@mui/material';
+
+import {Grid, Paper, Stack} from '@mui/material';
+
 import Link from 'next/link';
 
 import LockIcon from '@mui/icons-material/Lock';
@@ -10,6 +15,12 @@ import CC_BY_ND from './img/by-nd.svg';
 import CC_BY_SA from './img/by-sa.svg';
 import CC_BY_NC_ND from './img/by-nc-nd.svg';
 import CC_BY_NC_SA from './img/by-nc-sa.svg';
+
+import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
+
+// Deployed in Goerli
+const CONTRACT_ADDRESS = "0xA05D10F3A145c38928BB298b49502886ab8f601f"
+
 
 declare global {
     interface Window {
@@ -39,6 +50,14 @@ interface CCLLogo {
     [key: string]: any;
 }
 
+
+interface NFTInfoCustomProps {
+    jsonResponse: any;
+    NFTOwner: string;
+    NFTUser: string;
+    requestorId?: string;
+}
+
 let cclLogo: CCLLogo = {
     "CC BY": () => { return <CC_BY /> },
     "CC BY-NC": () => { return <CC_BY_NC /> },
@@ -47,7 +66,7 @@ let cclLogo: CCLLogo = {
     "CC BY-NC-ND": () => { return <CC_BY_NC_ND />},
     "CC BY-NC-SA": () => { return <CC_BY_NC_SA />},
     "unlockable content": () => {
-        return <Button startIcon={<LockIcon />} size="small" sx={{width:120, height: 42 }} />
+        return <Button startIcon={<LockIcon />} size="small" sx={{width:120, height: 42 }} disabled />
     }
 }
 
@@ -129,7 +148,7 @@ async function testExpirationTime(since:number, expired:number, monitorTime:numb
     }
 
 
-    console.log("Retnal start in ", new Date(since))
+    console.log("Rental start in ", new Date(since))
     console.log("Rental expired in ", new Date(expired))
     while(true) {
         let currentTime = new Date().getTime()
@@ -144,5 +163,111 @@ async function testExpirationTime(since:number, expired:number, monitorTime:numb
     }
 }
 
-export { cclLogo, Connect, ListItemLink, encryptAddress, splitTimestamp, testExpirationTime }
+async function uploadHandler(
+    selectedFile:File,
+    ownerAddress: string,
+    title: string,
+    signature: string,
+    copyright: string,
+    tokenId: string
+) {
+const formData = new FormData();
+
+formData.append('file', selectedFile!);
+console.log(formData);
+
+let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
+    method: "POST",
+    body: formData,
+});
+
+// TODO: Implement write data to DB with file hash
+let POSTbody = JSON.stringify({
+    account_id: ownerAddress,
+    file_name: selectedFile!.name,
+    signature: signature,
+    type: selectedFile!.type,
+    URI: ownerAddress + "/" + selectedFile!.name,
+    NFTtitle: title,
+    NFT_id: tokenId,
+    Copyright: copyright,
+});
+
+let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
+    method: "POST",
+    body: POSTbody,
+});
+}
+
+// Post Metadata json file to storage
+async function postMetadata(address: string, URI: string, metadata: NFTMetaData) {
+const formData = new FormData();
+let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+let metaDataFile = new File([metaDataBlob], URI);
+
+formData.append('file', metaDataFile);
+
+let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+    method: "POST",
+    body: formData,
+});
+}
+
+
+async function mintERC721(
+    connect: Connect | undefined,
+    selectedFile: File,
+    unlockableContent: boolean,
+    nftMetaData: NFTMetaData,
+    copyright: string
+): Promise<Contract> {
+    const abi = ERC4907ContractInfo.abi;
+    const bytecode = ERC4907ContractInfo.bytecode;
+    
+    const signer = connect!.getSigner();
+    const contract = new Contract(CONTRACT_ADDRESS, abi, signer);
+    
+    const metaDataURI = selectedFile!.name + ".metadata.json"
+    const unlockableMetDataURI = selectedFile!.name + ".unlockable"+ ".metadata.json"
+
+    const ownerAddress = await signer!.getAddress();
+    const signature = await signer!.signMessage(ownerAddress);
+
+    const mintingResult = await contract.mintNFT(ownerAddress, metaDataURI);
+    const receipt = await mintingResult.wait();
+    
+    console.log(receipt)
+    //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
+    let hexTokenId = receipt.logs[0].topics[3]
+    let tokenId_dec = parseInt(hexTokenId, 16).toString()    
+
+    await uploadHandler(selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec);
+    if (unlockableContent) {
+        console.log("Upload metadata file of unlockable content");
+
+        let unlockableMetaData: NFTMetaData = {
+            title: nftMetaData.title,
+            image: nftMetaData.image,
+            NFTId: tokenId_dec,
+            unlockableContent: nftMetaData.unlockableContent,
+            attribution: nftMetaData.attribution,
+        };
+        nftMetaData.image = "temp";
+
+        console.log("Generate unlockable content metadata...");
+        await postMetadata(ownerAddress, unlockableMetDataURI, unlockableMetaData);
+    }
+
+    nftMetaData.NFTId = tokenId_dec;
+    console.log("Upload metadata file");
+    await postMetadata(ownerAddress, metaDataURI, nftMetaData);
+
+    console.log(nftMetaData);
+    console.log(JSON.stringify(nftMetaData));
+    console.log(selectedFile);
+
+    return contract;
+}   
+
+export { cclLogo, Connect, ListItemLink, mintERC721, encryptAddress, splitTimestamp, testExpirationTime, }
 export type { CCLLogo, Attribution, NFTMetaData }

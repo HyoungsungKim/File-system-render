@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
+import { alpha, styled, createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import MuiDrawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
@@ -16,13 +16,54 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Link from "next/link"
-import Menu from '@mui/material/Menu';
+import Menu, { MenuProps } from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 
 
 import { mainListItems, secondaryListItems } from './listItems';
 import { ConnectAccount } from './accountHandler';
 import {splitTimestamp} from './utils'
+
+const StyledMenu = styled((props: MenuProps) => (
+    <Menu
+      elevation={0}
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'right',
+      }}
+      transformOrigin={{
+        vertical: 'top',
+        horizontal: 'right',
+      }}
+      {...props}
+    />
+  ))(({ theme }) => ({
+    '& .MuiPaper-root': {
+      borderRadius: 6,
+      marginTop: theme.spacing(1),
+      minWidth: 180,
+      color:
+        theme.palette.mode === 'light' ? 'rgb(55, 65, 81)' : theme.palette.grey[300],
+      boxShadow:
+        'rgb(255, 255, 255) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px',
+      '& .MuiMenu-list': {
+        padding: '4px 0',
+      },
+      '& .MuiMenuItem-root': {
+        '& .MuiSvgIcon-root': {
+          fontSize: 18,
+          color: theme.palette.text.secondary,
+          marginRight: theme.spacing(1.5),
+        },
+        '&:active': {
+          backgroundColor: alpha(
+            theme.palette.primary.main,
+            theme.palette.action.selectedOpacity,
+          ),
+        },
+      },
+    },
+  }));
 
 function Copyright(props: any) {
     return (
@@ -201,12 +242,15 @@ export function DashboardContent({children}:{
             return (
                 <div>{
                     rentalLogsById.map((rentalLogById, index) => (
-                        <MenuItem onClick={handleNotiClose}>
-                            requestor_id: {rentalLogById["requestorId"]},
-                            nft_id: {rentalLogById["nftId"]},
-                            rentalPeriod: {rentalLogById["rentalPeriod"]},
-                            request_date: {rentalLogById["timestamp"]}
-                        </MenuItem>  
+                        <div>
+                            <MenuItem onClick={handleNotiClose}>
+                                requestor_id: {rentalLogById["requestorId"]},
+                                nft_id: {rentalLogById["nftId"]},
+                                rental_period: {rentalLogById["rentalPeriod"]},
+                                request_date: {rentalLogById["timestamp"]}
+                            </MenuItem>  
+                            <Divider />
+                        </div>
                     ))}
                 </div>
             )
@@ -221,7 +265,7 @@ export function DashboardContent({children}:{
 
     const DisplayNotification = (): JSX.Element => {
         return (
-            <Menu
+            <StyledMenu
                 id="basic-menu"
                 anchorEl={anchorEl}
                 open={menuOpen}
@@ -229,9 +273,16 @@ export function DashboardContent({children}:{
                 MenuListProps={{
                     'aria-labelledby': 'basic-button',
                 }}
-            >                    
+            >                   
+                <MenuItem onClick={handleNotiClose}>
+                    {<h3>Rental request</h3>}    
+                </MenuItem>  
                 <RentalInfo />
-            </Menu>
+
+                <MenuItem onClick={handleNotiClose}>
+                    {<h3>Report</h3>}    
+                </MenuItem>  
+            </StyledMenu>
         )
     }
 
@@ -265,7 +316,7 @@ export function DashboardContent({children}:{
                             sx={{ flexGrow: 1 }}
                         >
                             <Link href="/">
-                                <a>Dashboard</a>
+                                <a>Manual</a>
                             </Link>
                         </Typography>
                         <ConnectAccount

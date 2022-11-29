@@ -18,6 +18,9 @@ import Snackbar from '@mui/material/Snackbar';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
+// Deployed in Goerli
+const CONTRACT_ADDRESS = "0xA05D10F3A145c38928BB298b49502886ab8f601f"
+
 const ONEMINUTE_SECOND = 60
 const ONEHOUR_SECOND = ONEMINUTE_SECOND * 60
 const ONEDAY_SECOND = ONEHOUR_SECOND * 24
@@ -174,7 +177,7 @@ const MetadataInfoHandler = (props: MetadataInfoProps): JSX.Element =>{
                         }
                     </ListItem>
                     <ListItem style={{display:'flex', justifyContent:'center'}} >
-                        <Button variant="contained" size="small" sx={{height: 42 }} > Rental request </Button>
+                        <Button variant="contained" size="small" sx={{height: 42 }} > Request NFT rental </Button>
                     </ListItem>
                 </List>
                     
@@ -212,7 +215,7 @@ const NFTInfoHandler = (props: RequestProps): JSX.Element => {
         let jsonResponse = await response.json()
 
         const abi = ERC4907ContractInfo.abi;
-        const contract = new Contract("0x0354fab135deE2b7aCc82c36047C1C157cE98B1B", abi, connect?.getProvider());
+        const contract = new Contract(CONTRACT_ADDRESS, abi, connect?.getProvider());
 
         let owner = await contract.ownerOf(NFTId)
         let user = await contract.userOf(NFTId)

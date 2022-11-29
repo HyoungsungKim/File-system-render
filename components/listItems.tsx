@@ -10,6 +10,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import OutboxIcon from '@mui/icons-material/Outbox';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { ListItemLink } from './utils'
@@ -20,6 +21,7 @@ export const mainListItems = (
         <ListItemLink to="/collection" primary="Collection" icon={<CollectionsIcon />} />
         <ListItemLink to="/request" primary="Request" icon={<HandshakeIcon />} />
         <ListItemLink to="/rental" primary="Rental" icon={<OutboxIcon />} />
+        <ListItemLink to="/report" primary="Report" icon={<ReportProblemIcon />} />
         {
             //<ListItemLink to="/upload" primary="Upload" icon={<AddPhotoAlternateIcon />} />
             //<ListItemLink to="/mint" primary="Mint NFT" icon={<BarChartIcon />} />

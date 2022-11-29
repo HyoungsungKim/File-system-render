@@ -3,9 +3,12 @@ import { cclLogo, Connect } from './utils';
 
 import { Alert, Button } from '@mui/material';
 import { Card, CardActions, CardContent, CardMedia, Container} from '@mui/material';
-import { Icon, IconButton, Stack, Typography } from '@mui/material';
+import { Divider, Stack, Typography } from '@mui/material';
 import {Grid} from '@mui/material';
 
+import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DownloadIcon from '@mui/icons-material/Download';
 
 
@@ -38,50 +41,79 @@ function displaySrc(
         return (
             <Container sx={{ py: 8 }} maxWidth="md">
             {/* End hero unit */}
-            <Grid container spacing={4}>
-                {cards.map((card, index) => (
-                    <Grid item key={card} xs={12} sm={6} md={4}>
-                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }} >
-                            <CardMedia
-                                component="img"
-                                sx={{
-                                    objectFit: "contain",
-                                    margin: "auto",
-                                }}
-                                image={"http://172.32.0.1:9010/collection/" + srcURIs[card]} //"https://source.unsplash.com/random"
-                                alt="random"
-                            />
-                           <CardContent sx={{ flexGrow: 1 }}>
-                                <Typography gutterBottom variant="h5" component="h2">
-                                    {NFTtitles![index]}
-                                </Typography>
-                                <Typography>
-                                    This is a media card. You can use this section to describe the
-                                    content.
-                                </Typography>
-                            </CardContent>
-                            <CardActions>      
-                                <Stack direction="row" alignItems="center" gap={0.5}>
-                                    {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
-                                        cclLogo[copyrights![index]]()
-                                    }
-                                    <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42 }} onClick={async () => {
-                                        let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card], {
-                                            method: "GET",
-                                        })
-                                        if (response.status === 200) {
-                                            let a = document.createElement("a");
-                                            a.href = response.url
-                                            a.setAttribute("download", srcURIs[card].split('/')[1])
-                                            a.click()
-                                        }
-                                    }}> Download </Button>
-                                </Stack>                          
-                            </CardActions>
-                        </Card>
+            <Accordion>
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                    <Typography>Own</Typography>
+                </AccordionSummary>
+                <Divider />
+                <AccordionDetails>
+                    <Grid container spacing={4}>
+                        {cards.map((card, index) => (
+                            <Grid item key={card} xs={12} sm={6} md={4}>
+                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }} >
+                                    <CardMedia
+                                        component="img"
+                                        sx={{
+                                            objectFit: "contain",
+                                            margin: "auto",
+                                        }}
+                                        image={"http://172.32.0.1:9010/collection/" + srcURIs[card]} //"https://source.unsplash.com/random"
+                                        alt="random"
+                                    />
+                                    <Divider />
+                                    <CardContent sx={{ flex: '1 0 auto' }}>
+                                        <Typography gutterBottom variant="h5" component="div">
+                                            {NFTtitles![index]}
+                                        </Typography>
+                                        
+                                        <Typography>
+                                            This is a media card. You can use this section to describe the
+                                            content.
+                                        </Typography>
+                                    </CardContent>
+                                    <Divider />
+                                    <CardActions>      
+                                        <Stack direction="row" alignItems="center" gap={0.5}>
+                                            {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
+                                                cclLogo[copyrights![index]]()
+                                            }
+                                            <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42 }} onClick={async () => {
+                                                let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card], {
+                                                    method: "GET",
+                                                })
+                                                if (response.status === 200) {
+                                                    let a = document.createElement("a");
+                                                    a.href = response.url
+                                                    a.setAttribute("download", srcURIs[card].split('/')[1])
+                                                    a.click()
+                                                }
+                                            }}> Download </Button>
+                                        </Stack>                          
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
                     </Grid>
-                ))}
-            </Grid>
+                </AccordionDetails>
+            </Accordion>
+
+            <Accordion>
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                    <Typography>Rental</Typography>
+                </AccordionSummary>
+                <Divider />
+                <AccordionDetails>
+                    
+                </AccordionDetails>
+            </Accordion>
             </Container>
         )
     }
