@@ -19,9 +19,11 @@ export const mainListItems = (
     <React.Fragment>
         <ListItemLink to="/create" primary="Create" icon={<AddPhotoAlternateIcon />} />
         <ListItemLink to="/collection" primary="Collection" icon={<CollectionsIcon />} />
-        <ListItemLink to="/request" primary="Request" icon={<HandshakeIcon />} />
-        <ListItemLink to="/rental" primary="Rental" icon={<OutboxIcon />} />
-        <ListItemLink to="/report" primary="Report" icon={<ReportProblemIcon />} />
+            {
+            //    <ListItemLink to="/request" primary="Request" icon={<HandshakeIcon />} />
+            //    <ListItemLink to="/rental" primary="Rental" icon={<OutboxIcon />} />
+            }
+            <ListItemLink to="/report" primary="Report" icon={<ReportProblemIcon />} />
         {
             //<ListItemLink to="/upload" primary="Upload" icon={<AddPhotoAlternateIcon />} />
             //<ListItemLink to="/mint" primary="Mint NFT" icon={<BarChartIcon />} />

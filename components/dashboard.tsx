@@ -156,6 +156,7 @@ export function DashboardContent({children}:{
     
     const handleNotiClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
+        //updateLatestTimestamp(setLatestTimestamp, new Date().getTime().toString());
     };
 
     const handleNotiClose = () => {
@@ -387,7 +388,9 @@ export function DashboardContent({children}:{
                     <Toolbar />
                     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                         {children}
-                        <Copyright sx={{ pt: 4 }} />
+                        {
+                        //    <Copyright sx={{ pt: 4 }} />
+                        }
                     </Container>
                 </Box>
             </Box>

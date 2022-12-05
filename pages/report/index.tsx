@@ -1,5 +1,5 @@
 import { DashboardContent } from '../../components/dashboard';
-import { ReportLayout } from '../../components/reportHandler';
+import { ReportLayout } from '../../components/jubaesi_reportHandler';
 
 export default function UploadPage() {
     return(

@@ -8,6 +8,8 @@ import {Grid, Paper, Stack} from '@mui/material';
 
 import Link from 'next/link';
 
+import JsZip from 'jszip' 
+
 import LockIcon from '@mui/icons-material/Lock';
 import CC_BY from './img/by.svg';
 import CC_BY_NC from './img/by-nc.svg';
@@ -17,6 +19,7 @@ import CC_BY_NC_ND from './img/by-nc-nd.svg';
 import CC_BY_NC_SA from './img/by-nc-sa.svg';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
+import {requestDownloadURL} from './externalAPI';
 
 // Deployed in Goerli
 const CONTRACT_ADDRESS = "0xA05D10F3A145c38928BB298b49502886ab8f601f"
@@ -164,63 +167,129 @@ async function testExpirationTime(since:number, expired:number, monitorTime:numb
 }
 
 async function uploadHandler(
+    ownerId: string,
     selectedFile:File,
     ownerAddress: string,
     title: string,
     signature: string,
     copyright: string,
-    tokenId: string
+    tokenId: string,
+    UCI: string
 ) {
-const formData = new FormData();
+    const formData = new FormData();
 
-formData.append('file', selectedFile!);
-console.log(formData);
+    formData.append('file', selectedFile!);
+    console.log(formData);
 
-let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
-    method: "POST",
-    body: formData,
-});
+    let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
+        method: "POST",
+        body: formData,
+    });
 
-// TODO: Implement write data to DB with file hash
-let POSTbody = JSON.stringify({
-    account_id: ownerAddress,
-    file_name: selectedFile!.name,
-    signature: signature,
-    type: selectedFile!.type,
-    URI: ownerAddress + "/" + selectedFile!.name,
-    NFTtitle: title,
-    NFT_id: tokenId,
-    Copyright: copyright,
-});
-
-let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
-    method: "POST",
-    body: POSTbody,
-});
+    // TODO: Implement write data to DB with file hash
+    let POSTbody = JSON.stringify({
+        owner_id: ownerId,
+        account_id: ownerAddress,
+        file_name: selectedFile!.name,
+        signature: signature,
+        type: selectedFile!.type,
+        URI: ownerAddress + "/" + selectedFile!.name,        
+        NFTtitle: title,
+        NFT_id: tokenId,
+        Copyright: copyright,
+        UCI: UCI,
+    });
+    console.log("POST body")
+    console.log(POSTbody)
+    let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
+        method: "POST",
+        body: POSTbody,
+    });
 }
 
 // Post Metadata json file to storage
 async function postMetadata(address: string, URI: string, metadata: NFTMetaData) {
-const formData = new FormData();
-let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
-let metaDataFile = new File([metaDataBlob], URI);
+    const formData = new FormData();
+    let metaDataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    let metaDataFile = new File([metaDataBlob], URI);
 
-formData.append('file', metaDataFile);
-
-let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-    method: "POST",
-    body: formData,
-});
+    formData.append('file', metaDataFile);
+        let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+            method: "POST",
+            body: formData,
+        });
 }
 
+async function downloadHandler(address: string, musicId: string | undefined): Promise<[File, string] | undefined>{
+    if(musicId) {
+        let jsonResponse = await requestDownloadURL(musicId)
+        console.log(jsonResponse)
+
+        const url = jsonResponse["mp3_url "]
+        const formData = new FormData()
+        const fileFromJubaesi = await fetch(url, {
+            method: "GET",
+        })
+
+        console.log(fileFromJubaesi)
+        const mp3Blob = await fileFromJubaesi.blob()
+        //const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3))
+        console.log(url.slice(-3))
+        const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3), {                
+            type: url.slice(-3)
+        })
+        formData.append('file',  mp3File)
+
+        console.log(formData)
+        const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+            method: "POST",
+            body: formData,
+        });
+
+        console.log(response)
+        return [mp3File, url.slice(-3)]
+    } else {
+        console.log("Music id does not exist in DB")
+        return undefined
+    }
+}
+
+function parseInfo(allMusicInfo: object[], objKey:string): string[] {
+    let parsedList: string[] = []
+    if (allMusicInfo) {
+        allMusicInfo.forEach((musicInfo) => {
+            parsedList.push(musicInfo[objKey as keyof object])
+        })
+    }
+
+    return parsedList
+}
+
+// string of thumbnail and musicFile is extension
+// string of metaData and unlockableMetaData is uri
+async function zipFiles(musicId: string, thumbnail: [File, string], musicFile: [File, string], metaData: [NFTMetaData, string], unlockableMetaData? : [NFTMetaData, string]): Promise<Blob> {
+    const zip = new JsZip();
+
+    zip.file(musicId+"."+thumbnail[1], thumbnail[0])
+    zip.file(musicId+"."+musicFile[1], musicFile[0])
+    zip.file(metaData[1], JSON.stringify(metaData[0]))
+
+    if(unlockableMetaData) {
+        zip.file(unlockableMetaData[1], JSON.stringify(unlockableMetaData[0]))
+    }
+
+    return zip.generateAsync({type:"blob"})
+}
 
 async function mintERC721(
     connect: Connect | undefined,
+    ownerId: string,
     selectedFile: File,
     unlockableContent: boolean,
     nftMetaData: NFTMetaData,
-    copyright: string
-): Promise<Contract> {
+    copyright: string,
+    UCI: string
+): Promise<[[NFTMetaData, string], [NFTMetaData, string] |undefined]> {
     const abi = ERC4907ContractInfo.abi;
     const bytecode = ERC4907ContractInfo.bytecode;
     
@@ -236,16 +305,18 @@ async function mintERC721(
     const mintingResult = await contract.mintNFT(ownerAddress, metaDataURI);
     const receipt = await mintingResult.wait();
     
+    let unlockableMetaData: NFTMetaData = nftMetaData;
+
     console.log(receipt)
     //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
     let hexTokenId = receipt.logs[0].topics[3]
     let tokenId_dec = parseInt(hexTokenId, 16).toString()    
 
-    await uploadHandler(selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec);
+    await uploadHandler(ownerId, selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec, UCI);
     if (unlockableContent) {
         console.log("Upload metadata file of unlockable content");
 
-        let unlockableMetaData: NFTMetaData = {
+        unlockableMetaData = {
             title: nftMetaData.title,
             image: nftMetaData.image,
             NFTId: tokenId_dec,
@@ -266,8 +337,10 @@ async function mintERC721(
     console.log(JSON.stringify(nftMetaData));
     console.log(selectedFile);
 
-    return contract;
+    //return contract;
+    
+    return [[nftMetaData, metaDataURI], unlockableContent ? [unlockableMetaData, unlockableMetDataURI] : undefined]
 }   
 
-export { cclLogo, Connect, ListItemLink, mintERC721, encryptAddress, splitTimestamp, testExpirationTime, }
+export { cclLogo, Connect, ListItemLink, mintERC721, encryptAddress, splitTimestamp, testExpirationTime, downloadHandler, parseInfo, zipFiles}
 export type { CCLLogo, Attribution, NFTMetaData }

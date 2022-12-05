@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Contract, ContractFactory } from 'ethers';
 
-import { Connect, mintERC721} from './utils';
+import { Connect, downloadHandler, mintERC721, parseInfo, zipFiles} from './utils';
 import type { Attribution, NFTMetaData} from './utils';
 
 import {login, requestDownloadURL} from './externalAPI';
@@ -21,24 +21,17 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 
 let connect: Connect | undefined = undefined;
-
 interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
     setSuccessCreate: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const parseInfo = (allMusicInfo: object[], objKey:string): string[] => {
-    let parsedList: string[] = []
-    allMusicInfo.forEach((musicInfo) => {
-        parsedList.push(musicInfo[objKey as keyof object])
-    })
 
-    return parsedList
-}
 
 const UploadAndMint = (props: FileProps): JSX.Element => {
     let { setFile, setSuccessCreate }: FileProps = props;
-
+    const [cclList, setCCLList] = useState<string[]>(["CC BY", "CC BY-NC", "CC BY-ND", "CC BY-SA", "CC BY-NC-ND", "CC BY-NC-SA"])
+    
     useEffect(() => {
         connect = new Connect(window.ethereum);
     }, [])
@@ -54,9 +47,13 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const [userPassword, setUserPassword] = useState<string>()
 
     const [musicId, setMusicId] = useState<string>()
+    const [musicUCI, setMusicUCI] = useState<string>()
+    const [musicName, setMusicName] = useState<string>()
+
     const [loginSuccess, setLoginSuccess] = useState<boolean>()
     const [musicIdList, setMusicIdList] = useState<string[]>()
     const [musicNameList, setMusicNameList] = useState<string[]>()
+    const [musicUCIList, setMusicUCIList] = useState<string[]>()
 
     const [snackbarOpen, setSnackbarOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -71,7 +68,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     }
 
     const musicIdFieldHandler = (event: SelectChangeEvent) => {
-        setMusicId(event.target.value);
+        setMusicId(event.target.value as string);
+        console.log(musicId)
     }
 
     /*
@@ -80,8 +78,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     }
     */
 
-    const radioButtonHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setCopyright(event.target.value)
+    const cclFieldHandler = (event: SelectChangeEvent) => {
+        setCopyright(event.target.value as string)
     }
 
     const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
@@ -111,14 +109,20 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             setSuccess(true)
 
             if(jsonResponse["status_code"] == 200) {
-                const musidIdList = parseInfo(jsonResponse["data"], "musicID")
-                const musidNameList = parseInfo(jsonResponse["data"], "musicName")
+                const parsedMusicIdList = parseInfo(jsonResponse["data"], "musicID")
+                const parsedMusicNameList = parseInfo(jsonResponse["data"], "musicName")
+                const parsedUCIList = parseInfo(jsonResponse["data"], "UCI")
 
-                setMusicIdList(musidIdList)
-                setMusicNameList(musidNameList)
+                setMusicIdList(parsedMusicIdList)
+                setMusicNameList(parsedMusicNameList)
+                setMusicId(parsedMusicIdList[0])
 
-                console.log(musidIdList)
-                console.log(musidNameList)
+                setMusicUCIList(parsedUCIList)
+                setMusicUCI(parsedUCIList[0])
+                
+                console.log(parsedMusicIdList)
+                console.log(parsedMusicNameList)
+                console.log(parsedUCIList)
             }
         } else {
             setSnackbarOpen(true);
@@ -143,38 +147,6 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
         }
     }
 
-    const downloadHandler = async (connect: Connect | undefined) => {
-        if(musicId) {
-            const signer = connect!.getSigner()
-            let address = await signer!.getAddress()
-
-            let jsonResponse = await requestDownloadURL(musicId)
-            console.log(jsonResponse)
-
-            const url = jsonResponse["mp3_url "]
-            const formData = new FormData()
-            const fileFromJubaesi = await fetch(url, {
-                method: "GET",
-            })
-            console.log(fileFromJubaesi)
-            const mp3Blob = await fileFromJubaesi.blob()
-            //const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3))
-            console.log(url.slice(-3))
-            const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3), {                
-                type: url.slice(-3)
-            })
-            formData.append('file',  mp3File)
-
-            console.log(formData)
-            const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
-                method: "POST",
-                body: formData,
-            });
-
-            console.log(response)
-        }
-    }
-
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
             const signer = connect!.getSigner()
@@ -182,7 +154,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
             
             let nftMetaData: NFTMetaData = {
-                title: title ? title : "undefined",
+                title: musicName ? musicName : "undefined", //title ? title : "undefined",
                 image: address + "/" + selectedFile!.name,
                 unlockableContent: unlockableContent,
                 NFTId: undefined,
@@ -190,10 +162,26 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                     copyright: copyright,
                 }
             }
+            console.log(nftMetaData)
 
             console.log("Call mint ERC721")
             if (isSelected) {
-                await mintERC721(connect, selectedFile!, unlockableContent, nftMetaData, copyright);                      
+                const [metaDataInfo, unlockableMetaDataInfo] = await mintERC721(connect, userId!, selectedFile!, unlockableContent, nftMetaData, copyright, musicUCI!);       
+
+                console.log("Download a file from Jubaesi server and send it to backup server")
+                const musicFile = await downloadHandler(address, musicId);    
+                
+                console.log("Packing files...")
+                const zipBlob = await zipFiles(musicId!, [selectedFile!, selectedFile!.type.slice(-3)], musicFile!, metaDataInfo, unlockableMetaDataInfo)
+                const zipFile = new File([zipBlob], musicId!+".zip")
+                const formData = new FormData()
+                formData.append("file", zipFile)
+
+                const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+                    method: "POST",
+                    body: formData,
+                });
+
                 setSuccessCreate(true);
             }
          
@@ -227,12 +215,17 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                                                     id="SelectMusic"
                                                     label="Select a music"
                                                     variant="standard"
-                                                    value={musicIdList[0]}
+                                                    defaultValue={''}
+                                                    value={musicId}
                                                     onChange={musicIdFieldHandler}
                                                 >{
                                                     musicIdList.map((musicId, idx) => (
-                                                        <MenuItem value={musicId} key={musicId}>{"["+ musicId +"] " + musicNameList![idx]}</MenuItem>
-                                                    ))
+                                                        <MenuItem value={musicId} key={musicId} onClick={() => {
+                                                            setMusicUCI(musicUCIList![idx]),
+                                                            setMusicName(musicNameList![idx]),
+                                                            setTitle(musicNameList![idx])
+                                                        }}>{"["+ musicId +"] " + musicNameList![idx]}</MenuItem>                                                        
+                                                    ))                                                    
                                                 }</Select>): (
                                                     <Typography align="center" gutterBottom>{"There is no music"}</Typography>
                                                 )
@@ -247,9 +240,6 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                         )
                     )
                 }
-                <Stack  spacing={1} direction="column" sx={{ my:1 }}>                    
-                    <Button variant="contained" component="label" onClick={() => downloadHandler(connect)}> Download </Button>
-                </Stack>
                 <Stack spacing={1} direction="row" sx={{ my: 1}}>
                     <Box textAlign='center'>
                         <Button variant="contained" component="label" > {"Select \n Thumbnail"}
@@ -263,43 +253,34 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 </Stack> 
                 <Divider variant="middle" />
                 {isSelected ? (
-                    <div>
+                    <Stack spacing={1} direction="column" sx={{ my:1 }}>
                         {
                             //<TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/> 
                             //<TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>                        
                         }
                         <TextField id="FileType" label="File type" variant="standard" defaultValue={selectedFile!.type} disabled/>
-                        <div>
                             <FormControlLabel control={<Switch onChange= {() => { 
                                 isUnlockableContent(!unlockableContent)
                                 setCopyright("unlockable content")
                             }} />} label="Unlockable content" />
-                        </div>
-
-                        <div>
-                            <FormControl>
-                                <FormLabel id="demo-radio-buttons-group-label">Common Creative License</FormLabel>
-                                <RadioGroup
-                                    aria-labelledby="demo-radio-buttons-group-label"
-                                    defaultValue="CC BY"
-                                    name="radio-buttons-group"
-                                    onChange={radioButtonHandler}
-                                >
-                                    <FormControlLabel value="CC BY" disabled={unlockableContent} control={<Radio />} label="CC BY" />
-                                    <FormControlLabel value="CC BY-NC" disabled={unlockableContent} control={<Radio />} label="CC BY-NC" />
-                                    <FormControlLabel value="CC BY-ND" disabled={unlockableContent} control={<Radio />} label="CC BY-ND" />
-                                    <FormControlLabel value="CC BY-SA" disabled={unlockableContent} control={<Radio />} label="CC BY-SA" />
-                                    <FormControlLabel value="CC BY-NC-ND" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-ND" />
-                                    <FormControlLabel value="CC BY-NC-SA" disabled={unlockableContent} control={<Radio />} label="CC BY-NC-SA" />
-                                </RadioGroup>
-                            </FormControl>
-                        </div>
-
-                        <div>
-                            <TextField id="NFT-title" label="Title" variant="standard" defaultValue={musicId} disabled />
-                        </div>
-                    </div>
-                    
+                        
+                        <FormControl disabled={unlockableContent} fullWidth>
+                            <InputLabel id="SelectCCLLabel">Select CCL</InputLabel> 
+                            <Select
+                                labelId="CCL"
+                                id="CCL"
+                                label="Select CCL"
+                                variant="standard"
+                                value={copyright}
+                                onChange={cclFieldHandler}                                    
+                            >{
+                                cclList.map((ccl, idx) => (
+                                    <MenuItem value={ccl} key={ccl}>{ccl}</MenuItem>
+                                ))
+                            }</Select>
+                        </FormControl>
+                        <TextField id="NFT-title" label="Title" variant="standard" value={musicName} disabled/>
+                    </Stack>
                 ) : (
                     <Alert severity="info">Select a thumbnail</Alert>
                 )}

@@ -66,13 +66,13 @@ function displaySrc(
                                     />
                                     <Divider />
                                     <CardContent sx={{ flex: '1 0 auto' }}>
-                                        <Typography gutterBottom variant="h5" component="div">
+                                        <Typography gutterBottom variant="h6" component="div" align="center">
                                             {NFTtitles![index]}
                                         </Typography>
                                         
-                                        <Typography>
-                                            This is a media card. You can use this section to describe the
-                                            content.
+                                        <Typography> {
+                                            // This is a media card. You can use this section to describe the content.
+                                        }
                                         </Typography>
                                     </CardContent>
                                     <Divider />
@@ -81,8 +81,8 @@ function displaySrc(
                                             {//copyrights![index] ? cclogo[copyrights![index]]() : cclogo["unlockable content"]()
                                                 cclLogo[copyrights![index]]()
                                             }
-                                            <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42 }} onClick={async () => {
-                                                let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card], {
+                                            <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42, fontSize:12}} onClick={async () => {
+                                                let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card].split('.')[0] + ".zip", {
                                                     method: "GET",
                                                 })
                                                 if (response.status === 200) {
@@ -123,10 +123,11 @@ function ViewFiles(props: ViewProps): JSX.Element {
     let {title,}: ViewProps = props;
 
     let jsonResponse: any
-    let [fileURIs, setFileURIs]  = useState<string[]>()
-    let [NFTtitles, setNFTtitles] = useState<string[]>()
-    let [copyrights, setCopyrights] = useState<string[]>()
-    let [isSigValid, setIsSigValid] = useState(false)
+    const [fileURIs, setFileURIs]  = useState<string[]>()
+    const [NFTtitles, setNFTtitles] = useState<string[]>()
+    const [copyrights, setCopyrights] = useState<string[]>()
+    const [UCIs, setUCIs] = useState<string[]>()
+    const [isSigValid, setIsSigValid] = useState(false)
 
     useEffect(() => {
         connect = new Connect(window.ethereum);
@@ -146,9 +147,11 @@ function ViewFiles(props: ViewProps): JSX.Element {
 
         let validSignature = await signer!.signMessage(address)
         if (validSignature === jsonResponse.signature) {
-            fileURIs = jsonResponse.URIs
-            NFTtitles = jsonResponse.NFTtitles
-            copyrights = jsonResponse.copyrights
+            let fileURIs = jsonResponse.URIs
+            let NFTtitles = jsonResponse.NFTtitles
+            let copyrights = jsonResponse.copyrights
+            let UCIs = jsonResponse.UCIs
+
             console.log(jsonResponse)
             console.log(NFTtitles)
             console.log(copyrights)
@@ -157,6 +160,7 @@ function ViewFiles(props: ViewProps): JSX.Element {
             setFileURIs(fileURIs)
             setNFTtitles(NFTtitles)
             setCopyrights(copyrights)
+            setUCIs(UCIs)
         }
     }
 
@@ -171,7 +175,7 @@ function ViewFiles(props: ViewProps): JSX.Element {
                     {displaySrc(fileURIs, NFTtitles, copyrights)}
                 </div>
                 ) : (
-                    <Alert severity="info">{"Click VIEW FILE Button"}</Alert>
+                    <Alert severity="info">{"Click OPEN COLLECTION Button"}</Alert>
                 )
             }
         </div>
