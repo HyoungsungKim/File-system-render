@@ -95,7 +95,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const loginHandler = async () => {
         const loginResult = await login(userId!, userPassword!)
-        console.log(loginResult)
+        //console.log(loginResult)
         if (loginResult) {
             setLoginSuccess(loginResult)
 
