@@ -32,9 +32,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     let { setFile, setSuccessCreate }: FileProps = props;
     const [cclList, setCCLList] = useState<string[]>(["CC BY", "CC BY-NC", "CC BY-ND", "CC BY-SA", "CC BY-NC-ND", "CC BY-NC-SA"])
     
-    useEffect(() => {
-        connect = new Connect(window.ethereum);
-    }, [])
+
 
     const [isSelected, setIsSelected] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File>();
@@ -58,6 +56,11 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
     const [snackbarOpen, setSnackbarOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(true)
+
+    useEffect(() => {
+        connect = new Connect(window.ethereum);
+    }, [])
+
 
     const userIdFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
         setUserId(event.target.value);
@@ -115,10 +118,10 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
                 setMusicIdList(parsedMusicIdList)
                 setMusicNameList(parsedMusicNameList)
-                setMusicId(parsedMusicIdList[0])
+                //setMusicId(parsedMusicIdList[0])
 
                 setMusicUCIList(parsedUCIList)
-                setMusicUCI(parsedUCIList[0])
+                //setMusicUCI(parsedUCIList[0])
                 
                 console.log(parsedMusicIdList)
                 console.log(parsedMusicNameList)
@@ -149,6 +152,9 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
+            setLoading(true)
+            setSuccess(false)
+
             const signer = connect!.getSigner()
             let address = await signer!.getAddress()
 
@@ -167,7 +173,6 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             console.log("Call mint ERC721")
             if (isSelected) {
                 const [metaDataInfo, unlockableMetaDataInfo] = await mintERC721(connect, userId!, selectedFile!, unlockableContent, nftMetaData, copyright, musicUCI!);       
-
                 console.log("Download a file from Jubaesi server and send it to backup server")
                 const musicFile = await downloadHandler(address, musicId);    
                 
@@ -182,11 +187,14 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                     body: formData,
                 });
 
-                setSuccessCreate(true);
+                setSuccessCreate(true);            
             }
-         
-
+            setLoading(false)
+            setSuccess(true)
         } catch (err) {
+            setLoading(false)
+            setSuccess(true)
+            
             console.error(err);
             console.log((err as Error).message)
             //statusMonitor.innerHTML = `Minting failed, ${(err as Error).message}`;
@@ -242,11 +250,11 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 }
                 <Stack spacing={1} direction="row" sx={{ my: 1}}>
                     <Box textAlign='center'>
-                        <Button variant="contained" component="label" > {"Select \n Thumbnail"}
+                        <Button variant="contained" component="label" disabled={musicId==undefined || success==false}> {"Select \n Thumbnail"}
                             <input type="file" name="file" hidden onChange={changeHandler} />
                         </Button>
                     </Box>
-                    <Button variant="contained" type="submit" onClick={
+                    <Button variant="contained" type="submit" disabled={musicId==undefined || success==false} onClick={
                         () => submissionHandler(connect)
                     }>{"Create"}
                     </Button>
