@@ -75,7 +75,7 @@ function GetOwningMusicInfo(props: UCIListCallbackProps): JSX.Element {
         const signer = connect.getSigner();
         const address = await signer!.getAddress();
 
-        let response = await fetch("http://172.30.0.1:8090/collection/" + address, {
+        let response = await fetch("DB/collection/" + address, {
             method: "GET",
         })
         const jsonResponse = await response.json()

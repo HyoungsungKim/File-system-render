@@ -37,7 +37,7 @@ function displaySrc(
             cards.push(i)
         }
 
-        console.log("http://172.32.0.1:9010/collection/" + srcURIs[0])
+        console.log("file/collection/" + srcURIs[0])
         return (
             <Container sx={{ py: 8 }} maxWidth="md">
             {/* End hero unit */}
@@ -61,7 +61,7 @@ function displaySrc(
                                             objectFit: "contain",
                                             margin: "auto",
                                         }}
-                                        image={"http://172.32.0.1:9010/collection/" + srcURIs[card]} //"https://source.unsplash.com/random"
+                                        image={"file/collection/" + srcURIs[card]} //"https://source.unsplash.com/random"
                                         alt="random"
                                     />
                                     <Divider />
@@ -82,7 +82,7 @@ function displaySrc(
                                                 cclLogo[copyrights![index]]()
                                             }
                                             <Button variant="contained" startIcon={<DownloadIcon />} size="small" sx={{height: 42, fontSize:12}} onClick={async () => {
-                                                let response = await fetch("http://172.32.0.1:9010/download/" + srcURIs[card].split('.')[0] + ".zip", {
+                                                let response = await fetch("file/download/" + srcURIs[card].split('.')[0] + ".zip", {
                                                     method: "GET",
                                                 })
                                                 if (response.status === 200) {
@@ -137,7 +137,7 @@ function ViewFiles(props: ViewProps): JSX.Element {
         const signer = connect.getSigner();
         let address = await signer!.getAddress();
 
-        let response = await fetch("http://172.30.0.1:8090/collection/" + address, {
+        let response = await fetch("DB/collection/" + address, {
             method: "GET",
         })
         jsonResponse = await response.json()

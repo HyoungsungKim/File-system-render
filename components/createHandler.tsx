@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Contract, ContractFactory } from 'ethers';
 
+
+
 import { Connect, downloadHandler, mintERC721, parseInfo, zipFiles} from './utils';
 import type { Attribution, NFTMetaData} from './utils';
 
@@ -152,6 +154,12 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const submissionHandler = async (connect: Connect | undefined) => {
         try {
+
+            let responsePing = await fetch("file/ping", {
+                method: "GET"
+            });
+            console.log(responsePing)
+
             setLoading(true)
             setSuccess(false)
 
@@ -182,7 +190,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 const formData = new FormData()
                 formData.append("file", zipFile)
 
-                const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+                const response = await fetch("file/upload/" + address, {
                     method: "POST",
                     body: formData,
                 });

@@ -181,7 +181,8 @@ async function uploadHandler(
     formData.append('file', selectedFile!);
     console.log(formData);
 
-    let response = await fetch("http://172.32.0.1:9010/upload/" + ownerAddress, {
+
+    let response = await fetch("file/upload/" + ownerAddress, {
         method: "POST",
         body: formData,
     });
@@ -201,7 +202,7 @@ async function uploadHandler(
     });
     console.log("POST body")
     console.log(POSTbody)
-    let responseFromDB = await fetch("http://172.30.0.1:8090/upload/submit", {
+    let responseFromDB = await fetch("/DB/upload/submit", {
         method: "POST",
         body: POSTbody,
     });
@@ -214,7 +215,7 @@ async function postMetadata(address: string, URI: string, metadata: NFTMetaData)
     let metaDataFile = new File([metaDataBlob], URI);
 
     formData.append('file', metaDataFile);
-        let response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+        let response = await fetch("file/upload/" + address, {
             method: "POST",
             body: formData,
         });
@@ -241,7 +242,7 @@ async function downloadHandler(address: string, musicId: string | undefined): Pr
         formData.append('file',  mp3File)
 
         console.log(formData)
-        const response = await fetch("http://172.32.0.1:9010/upload/" + address, {
+        const response = await fetch("file/upload/" + address, {
             method: "POST",
             body: formData,
         });
