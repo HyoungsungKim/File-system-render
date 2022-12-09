@@ -163,7 +163,7 @@ function ShowAllowIdList(props: {ownerId: string, musicInfo: MusicInfo}): JSX.El
     return (
         <Box m={2}>
             <Stack spacing={2} direction="row" sx={{my:1}} justifyContent="center"> 
-                <TextField id="UCI" label="UCI" variant="standard" value={musicInfo.musicUCI} disabled/>
+                <TextField id="UCI" label="" variant="standard" value={musicInfo.musicUCI} disabled/>
                 <Button variant="contained" component="label" onClick={SearchHandler} >{"Search"}</Button>
             </Stack>
             {(allowIds ? 
@@ -200,7 +200,7 @@ function DisplayTable(props: {data: typeof monitorData}): JSX.Element {
     return (
         <div>
             <TableContainer component={Paper}>
-                <Table size="small"  >
+                <Table size="small" sx={{minWidth:650, overflowX: "auto"}} >
                     <TableHead>
                         <TableRow>
                             {
@@ -276,15 +276,12 @@ function DisplayTable(props: {data: typeof monitorData}): JSX.Element {
 
 function TableArcodian(props: {allowIds: string[], musicInfo: MusicInfo}): JSX.Element {
     const {allowIds, musicInfo} = props;
-    const filtedData = monitorData.filter((data: typeof monitorData[0]) => {
-        if(data.F_UCI == musicInfo.musicUCI) return true
-    })
-    
+
     const splitByallowId = () => {
         let allowed: typeof monitorData = []
         let disallowed: typeof monitorData = []
 
-        filtedData.map((data) => {
+        monitorData.map((data) => {
             if (allowIds.includes(data.F_PLATFORM_NM )) {
                 allowed.push(data)
             } else {
@@ -309,11 +306,11 @@ function TableArcodian(props: {allowIds: string[], musicInfo: MusicInfo}): JSX.E
             </AccordionSummary>
             <Divider />
             <AccordionDetails>
-                <Grid container spacing={4}>
+                <Paper>
                     {
                         <DisplayTable data={allowed}/>
                     }
-                </Grid>
+                </Paper>
             </AccordionDetails>
         </Accordion>
 
@@ -327,11 +324,11 @@ function TableArcodian(props: {allowIds: string[], musicInfo: MusicInfo}): JSX.E
             </AccordionSummary>
             <Divider />
             <AccordionDetails>
-                <Grid container spacing={4}>
+                <Paper>
                     {
                         <DisplayTable data={disallowed}/>
                     }
-                </Grid>
+                </Paper>
             </AccordionDetails>
         </Accordion>
         </Container>
