@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import type { NFTMetaData } from './utils';
 import { cclLogo, Connect, parseInfo } from './utils';
+import { TablePaginationActions } from './reportTablePagenation';
 import { Contract, } from 'ethers';
 
 import {Alert, AlertColor, Box, Button, Card, CardMedia, CircularProgress, TextField, InputLabel, Menu, MenuItem} from '@mui/material';
@@ -8,6 +9,9 @@ import {LinearProgress } from '@mui/material';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import {Container, Divider, Grid, Paper, Stack, Typography} from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Radio from '@mui/material/Radio';
@@ -23,6 +27,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import TableFooter from '@mui/material/TableFooter';
+import TablePagination from '@mui/material/TablePagination';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 import monitorData from './data/data.json';
@@ -141,13 +147,14 @@ function ShowUCIList(props: ShowUCIListProps): JSX.Element {
 // curl -sX GET -H "Content-Type: application/json; charset=utf-8" "http://121.67.187.148:3333/allmusicallowcondition?memberID=jubesi001&musicID=S000000000001885"
 function ShowAllowIdList(props: {ownerId: string, musicInfo: MusicInfo}): JSX.Element {
     const {ownerId, musicInfo} = props
-
+    const [allowIds, setAllowIds] = useState<string[]>()
     const SearchHandler = async () => {
         const response = await fetch(`http://121.67.187.148:3333/allmusicallowcondition?memberID=${ownerId}&musicID=${musicInfo.musicId}`, {
             method: "GET",
         })
         const jsonResponse = await response.json()
         const parsedAllowId = parseInfo(jsonResponse["data"], "allowID")
+        setAllowIds(parsedAllowId)
         console.log(parsedAllowId)
     }
 
@@ -159,50 +166,175 @@ function ShowAllowIdList(props: {ownerId: string, musicInfo: MusicInfo}): JSX.El
                 <TextField id="UCI" label="UCI" variant="standard" value={musicInfo.musicUCI} disabled/>
                 <Button variant="contained" component="label" onClick={SearchHandler} >{"Search"}</Button>
             </Stack>
+            {(allowIds ? 
+                <TableArcodian allowIds={allowIds} musicInfo={musicInfo}/>
+                : <div></div>
+            )}            
         </Box>
     )
 }
 
-function DisplayTable(): JSX.Element {
+function DisplayTable(props: {data: typeof monitorData}): JSX.Element {
+    const {data} = props
+    const [page, setPage] = React.useState(0);
+    const [rowsPerPage, setRowsPerPage] = React.useState(5);
+
+    // Avoid a layout jump when reaching the last page with empty rows.
+    const emptyRows =
+        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
+
+    const handleChangePage = (
+        event: React.MouseEvent<HTMLButtonElement> | null,
+        newPage: number,
+    ) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (
+        event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
     return (
         <div>
-            <TableContainer>
-                <Table>
+            <TableContainer component={Paper}>
+                <Table size="small"  >
                     <TableHead>
                         <TableRow>
-                            <TableCell>F_SEQ</TableCell>
-                            <TableCell>F_MONITOR_DT</TableCell>
-                            <TableCell>F_PLATFORM_NM</TableCell>
-                            <TableCell>F_SONG_NM</TableCell>
-                            <TableCell>F_PROGRAM_NM</TableCell>
-                            <TableCell>F_START_DT</TableCell>
-                            <TableCell>F_DURATION</TableCell>
-                            <TableCell>F_ARTIST_NM</TableCell>
-                            <TableCell>F_SONG_NM_SCH</TableCell>
-                            <TableCell>F_ARTIST_NM_SCH</TableCell>
-                            <TableCell>F_UCI</TableCell>
+                            {
+                                //<TableCell>F_SEQ</TableCell>
+                            }
+                            <TableCell>Date</TableCell>
+                            <TableCell>Platform</TableCell>
+                            <TableCell>Song</TableCell>
+                            <TableCell>Program</TableCell>
+                            <TableCell>Time</TableCell>
+                            <TableCell>Duration</TableCell>
+                            <TableCell>Artist name</TableCell>                            
+                            { 
+                                //<TableCell>F_SONG_NM_SCH</TableCell>                            
+                                //<TableCell>F_ARTIST_NM_SCH</TableCell>
+                                //<TableCell>F_UCI</TableCell> 
+                            }
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {monitorData.map((list, index) => (
-                            <TableRow key={index}>
-                                <TableCell>{list.F_SEQ}</TableCell>
+                        {(rowsPerPage > 0 ?
+                            data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) 
+                            : data).map((list, index) => (
+                            <TableRow key={index} component="th" scope="row">
+                                {
+                                    //<TableCell>{list.F_SEQ}</TableCell>
+                                }
                                 <TableCell>{list.F_MONITOR_DT}</TableCell>
                                 <TableCell>{list.F_PLATFORM_NM}</TableCell>
                                 <TableCell>{list.F_SONG_NM}</TableCell>
                                 <TableCell>{list.F_PROGRAM_NM}</TableCell>
                                 <TableCell>{list.F_START_DT}</TableCell>
                                 <TableCell>{list.F_DURATION}</TableCell>
-                                <TableCell>{list.F_ARTIST_NM}</TableCell>
-                                <TableCell>{list.F_SONG_NM_SCH}</TableCell>
-                                <TableCell>{list.F_ARTIST_NM_SCH}</TableCell>
-                                <TableCell>{list.F_UCI}</TableCell>
+                                <TableCell>{list.F_ARTIST_NM}</TableCell>                                
+                                {
+                                    //<TableCell>{list.F_SONG_NM_SCH}</TableCell>                                
+                                    //<TableCell>{list.F_ARTIST_NM_SCH}</TableCell>
+                                    //<TableCell>{list.F_UCI}</TableCell>
+                                }
                             </TableRow>
                         ))}
+                        {emptyRows > 0 && (
+                            <TableRow style={{ height: 53 * emptyRows }}>
+                            <TableCell colSpan={6} />
+                            </TableRow>
+                        )}
                     </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+                                colSpan={3}
+                                count={data.length}
+                                rowsPerPage={rowsPerPage}
+                                page={page}
+                                SelectProps={{
+                                    inputProps: {
+                                    'aria-label': 'rows per page',
+                                    },
+                                    native: true,
+                                }}
+                                onPageChange={handleChangePage}
+                                onRowsPerPageChange={handleChangeRowsPerPage}
+                                ActionsComponent={TablePaginationActions}
+                            />
+                        </TableRow>
+                        </TableFooter>
                 </Table>
             </TableContainer>
         </div>
+    )
+}
+
+function TableArcodian(props: {allowIds: string[], musicInfo: MusicInfo}): JSX.Element {
+    const {allowIds, musicInfo} = props;
+    const filtedData = monitorData.filter((data: typeof monitorData[0]) => {
+        if(data.F_UCI == musicInfo.musicUCI) return true
+    })
+    
+    const splitByallowId = () => {
+        let allowed: typeof monitorData = []
+        let disallowed: typeof monitorData = []
+
+        filtedData.map((data) => {
+            if (allowIds.includes(data.F_PLATFORM_NM )) {
+                allowed.push(data)
+            } else {
+                disallowed.push(data)
+            }
+        })
+
+        return [allowed, disallowed]
+    }
+
+    const [allowed, disallowed] = splitByallowId()
+
+    return (
+        <Container sx={{ py: 8 }} maxWidth="md">
+        <Accordion>
+                <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="panel1a-content"
+                id="panel1a-header"
+                >
+                <Typography>Allow</Typography>
+            </AccordionSummary>
+            <Divider />
+            <AccordionDetails>
+                <Grid container spacing={4}>
+                    {
+                        <DisplayTable data={allowed}/>
+                    }
+                </Grid>
+            </AccordionDetails>
+        </Accordion>
+
+        <Accordion>
+                <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="panel1a-content"
+                id="panel1a-header"
+                >
+                <Typography>Disallow</Typography>
+            </AccordionSummary>
+            <Divider />
+            <AccordionDetails>
+                <Grid container spacing={4}>
+                    {
+                        <DisplayTable data={disallowed}/>
+                    }
+                </Grid>
+            </AccordionDetails>
+        </Accordion>
+        </Container>
     )
 }
 
@@ -273,11 +405,11 @@ function ReportLayout(): JSX.Element {
                     )
                 } </Stack>
             }
-
             <Divider />
+
             <ShowAllowIdList ownerId={ownerId as string} musicInfo={musicInfo}/>
+            <Divider />
           </Paper>
-          <DisplayTable />
       </Container>
     )
 }

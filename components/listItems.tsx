@@ -23,7 +23,7 @@ export const mainListItems = (
             //    <ListItemLink to="/request" primary="Request" icon={<HandshakeIcon />} />
             //    <ListItemLink to="/rental" primary="Rental" icon={<OutboxIcon />} />
             
-            //<ListItemLink to="/report" primary="Report" icon={<ReportProblemIcon />} />
+            <ListItemLink to="/report" primary="Report" icon={<ReportProblemIcon />} />
         }
         {
             //<ListItemLink to="/upload" primary="Upload" icon={<AddPhotoAlternateIcon />} />
