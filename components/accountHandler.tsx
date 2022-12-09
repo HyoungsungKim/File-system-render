@@ -26,7 +26,7 @@ function ConnectAccount(props: ConnectProps): JSX.Element {
         if (account) {
             notificationHandler(setPastTimestamps, setFutureTimestamps)
         }
-    }, [account])
+    }, [account, connect])
 
     const connectMetamask = async () => {
         connect = new Connect(window.ethereum);
@@ -35,12 +35,13 @@ function ConnectAccount(props: ConnectProps): JSX.Element {
         const signer = connect.getSigner();
 
         setIsConnected(true)
-        setAccount(await signer?.getAddress())
+        return signer?.getAddress()
     }
 
     const clickHandler = async () => {
         if (!account) {
-            await connectMetamask()
+            const account = await connectMetamask()
+            setAccount(account)
             console.log("Account", account);
         }
         //userAccountComponent = document.getElementById("userAccount") as HTMLSpanElement;

@@ -18,9 +18,8 @@ import Snackbar from '@mui/material/Snackbar';
 
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
 
-const ReportLayout = (): JSX.Element => {
+function ReportLayout(): JSX.Element {
     const [jsonResponse, setJsonResponse] = useState<any>(undefined)
-    
 
     return (
         <Grid container spacing={1}>

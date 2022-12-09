@@ -169,6 +169,7 @@ export function DashboardContent({children}:{
         setFutureTimestamps: React.Dispatch<React.SetStateAction<string[]>>
     ) => {
         if (account) {
+            /*
             let rentalLogs = await fetch("http://172.30.0.1:8090/rental-logs/" + account, {
                 method: "GET",
             })
@@ -190,8 +191,8 @@ export function DashboardContent({children}:{
 
             setBadgeCounters(future.length)
             setLatestTimestamp(newLatestTimestamp)
+            */
         }
-
     }
 
     const updateLatestTimestamp = async (setLatestTimestamp: React.Dispatch<React.SetStateAction<string>>, latestTimestamp: string) => {

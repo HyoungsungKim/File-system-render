@@ -17,10 +17,17 @@ import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Snackbar from '@mui/material/Snackbar';
 
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+
 import ERC4907ContractInfo from './contract/ERC4907/ERC4907.json';
+import monitorData from './data/data.json';
 
-
-let connect: Connect
+let connect: Connect;
 
 interface MusicInfoListSetter {
     setMusicIdList: React.Dispatch<React.SetStateAction<string[] | undefined>>
@@ -156,6 +163,48 @@ function ShowAllowIdList(props: {ownerId: string, musicInfo: MusicInfo}): JSX.El
     )
 }
 
+function DisplayTable(): JSX.Element {
+    return (
+        <div>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>F_SEQ</TableCell>
+                            <TableCell>F_MONITOR_DT</TableCell>
+                            <TableCell>F_PLATFORM_NM</TableCell>
+                            <TableCell>F_SONG_NM</TableCell>
+                            <TableCell>F_PROGRAM_NM</TableCell>
+                            <TableCell>F_START_DT</TableCell>
+                            <TableCell>F_DURATION</TableCell>
+                            <TableCell>F_ARTIST_NM</TableCell>
+                            <TableCell>F_SONG_NM_SCH</TableCell>
+                            <TableCell>F_ARTIST_NM_SCH</TableCell>
+                            <TableCell>F_UCI</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {monitorData.map((list, index) => (
+                            <TableRow key={index}>
+                                <TableCell>{list.F_SEQ}</TableCell>
+                                <TableCell>{list.F_MONITOR_DT}</TableCell>
+                                <TableCell>{list.F_PLATFORM_NM}</TableCell>
+                                <TableCell>{list.F_SONG_NM}</TableCell>
+                                <TableCell>{list.F_PROGRAM_NM}</TableCell>
+                                <TableCell>{list.F_START_DT}</TableCell>
+                                <TableCell>{list.F_DURATION}</TableCell>
+                                <TableCell>{list.F_ARTIST_NM}</TableCell>
+                                <TableCell>{list.F_SONG_NM_SCH}</TableCell>
+                                <TableCell>{list.F_ARTIST_NM_SCH}</TableCell>
+                                <TableCell>{list.F_UCI}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </div>
+    )
+}
 
 function ReportLayout(): JSX.Element {
     const [jsonResponse, setJsonResponse] = useState<any>(undefined)
@@ -197,6 +246,8 @@ function ReportLayout(): JSX.Element {
     }
 
     useEffect(() => {
+        connect = new Connect(window.ethereum);
+
         musicInfoList.musicIdList = musicIdList
         musicInfoList.musicNameList = musicNameList
         musicInfoList.musicNameList = musicNameList
@@ -205,10 +256,6 @@ function ReportLayout(): JSX.Element {
         musicInfo.musicName = musicName
         musicInfo.musicUCI = musicUCI
     })
-
-    useEffect(() => {
-        connect = new Connect(window.ethereum);
-    }, [])
 
     return (
         <Container component="main"  maxWidth="md" sx={{ mb: 4 }}>
@@ -230,6 +277,7 @@ function ReportLayout(): JSX.Element {
             <Divider />
             <ShowAllowIdList ownerId={ownerId as string} musicInfo={musicInfo}/>
           </Paper>
+          <DisplayTable />
       </Container>
     )
 }

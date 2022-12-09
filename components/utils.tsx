@@ -104,10 +104,10 @@ function encryptAddress(address: string): Promise<string> {
     })
     .catch((error: any) => {
         if (error.code === 4001) {
-            console.log("we cannot encrypt anything without the key")
+            //console.log("we cannot encrypt anything without the key")
             return "4001";
         } else {
-            console.log(error)
+            //console.log(error)
             return error
         }
     })
@@ -137,9 +137,9 @@ function splitTimestamp(timestamps: string[], latestTimestamp: string): [string[
     timestamps.forEach((timestamp) => {
         timestamp < latestTimestamp ? past.push(timestamp) : future.push(timestamp)
     })
-    console.log("latestTimestamp: ", latestTimestamp)
-    console.log("past:", past)
-    console.log("future:", future)
+    //console.log("latestTimestamp: ", latestTimestamp)
+    //console.log("past:", past)
+    //console.log("future:", future)
 
     return [past, future]
 }
@@ -151,17 +151,17 @@ async function testExpirationTime(since:number, expired:number, monitorTime:numb
     }
 
 
-    console.log("Rental start in ", new Date(since))
-    console.log("Rental expired in ", new Date(expired))
+    //console.log("Rental start in ", new Date(since))
+    //console.log("Rental expired in ", new Date(expired))
     while(true) {
         let currentTime = new Date().getTime()
-        console.log("Current time: ", new Date(currentTime));
+        //console.log("Current time: ", new Date(currentTime));
 
         if (currentTime >= expired) {
-            console.log("Since: ", new Date(since), "Current time: ", new Date(currentTime), " Expired time: ", new Date(expired))
+            //console.log("Since: ", new Date(since), "Current time: ", new Date(currentTime), " Expired time: ", new Date(expired))
             break;
         }
-        console.log(`sleep ${monitorTime/1000} sec`)
+        //console.log(`sleep ${monitorTime/1000} sec`)
         await delay(monitorTime)
     }
 }
@@ -179,7 +179,7 @@ async function uploadHandler(
     const formData = new FormData();
 
     formData.append('file', selectedFile!);
-    console.log(formData);
+    //console.log(formData);
 
 
     let response = await fetch("file/upload/" + ownerAddress, {
@@ -200,8 +200,8 @@ async function uploadHandler(
         Copyright: copyright,
         UCI: UCI,
     });
-    console.log("POST body")
-    console.log(POSTbody)
+    //console.log("POST body")
+    //console.log(POSTbody)
     let responseFromDB = await fetch("/DB/upload/submit", {
         method: "POST",
         body: POSTbody,
@@ -224,7 +224,7 @@ async function postMetadata(address: string, URI: string, metadata: NFTMetaData)
 async function downloadHandler(address: string, musicId: string | undefined): Promise<[File, string] | undefined>{
     if(musicId) {
         let jsonResponse = await requestDownloadURL(musicId)
-        console.log(jsonResponse)
+        //console.log(jsonResponse)
 
         const url = jsonResponse["mp3_url "]
         const formData = new FormData()
@@ -232,25 +232,25 @@ async function downloadHandler(address: string, musicId: string | undefined): Pr
             method: "GET",
         })
 
-        console.log(fileFromJubaesi)
+        //console.log(fileFromJubaesi)
         const mp3Blob = await fileFromJubaesi.blob()
         //const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3))
-        console.log(url.slice(-3))
+        //console.log(url.slice(-3))
         const mp3File = new File([mp3Blob], musicId + "." + url.slice(-3), {                
             type: url.slice(-3)
         })
         formData.append('file',  mp3File)
 
-        console.log(formData)
+        //console.log(formData)
         const response = await fetch("file/upload/" + address, {
             method: "POST",
             body: formData,
         });
 
-        console.log(response)
+        //console.log(response)
         return [mp3File, url.slice(-3)]
     } else {
-        console.log("Music id does not exist in DB")
+        //console.log("Music id does not exist in DB")
         return undefined
     }
 }
@@ -308,14 +308,14 @@ async function mintERC721(
     
     let unlockableMetaData: NFTMetaData = nftMetaData;
 
-    console.log(receipt)
+    //console.log(receipt)
     //https://ethereum.stackexchange.com/questions/57803/solidity-event-logs
     let hexTokenId = receipt.logs[0].topics[3]
     let tokenId_dec = parseInt(hexTokenId, 16).toString()    
 
     await uploadHandler(ownerId, selectedFile, ownerAddress, nftMetaData.title, signature, copyright, tokenId_dec, UCI);
     if (unlockableContent) {
-        console.log("Upload metadata file of unlockable content");
+        //console.log("Upload metadata file of unlockable content");
 
         unlockableMetaData = {
             title: nftMetaData.title,
@@ -326,17 +326,17 @@ async function mintERC721(
         };
         nftMetaData.image = "temp";
 
-        console.log("Generate unlockable content metadata...");
+        //console.log("Generate unlockable content metadata...");
         await postMetadata(ownerAddress, unlockableMetDataURI, unlockableMetaData);
     }
 
     nftMetaData.NFTId = tokenId_dec;
-    console.log("Upload metadata file");
+    //console.log("Upload metadata file");
     await postMetadata(ownerAddress, metaDataURI, nftMetaData);
 
-    console.log(nftMetaData);
-    console.log(JSON.stringify(nftMetaData));
-    console.log(selectedFile);
+    //console.log(nftMetaData);
+    //console.log(JSON.stringify(nftMetaData));
+    //console.log(selectedFile);
 
     //return contract;
     

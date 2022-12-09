@@ -22,7 +22,8 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 
 
-let connect: Connect | undefined = undefined;
+let connect: Connect;
+
 interface FileProps {
     setFile: React.Dispatch<React.SetStateAction<File | undefined>>;
     setSuccessCreate: React.Dispatch<React.SetStateAction<boolean>>
@@ -61,7 +62,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     useEffect(() => {
         connect = new Connect(window.ethereum);
-    }, [])
+    }, [connect])
 
 
     const userIdFieldHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +75,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const musicIdFieldHandler = (event: SelectChangeEvent) => {
         setMusicId(event.target.value as string);
-        console.log(musicId)
+        //console.log(musicId)
     }
 
     /*
@@ -97,8 +98,8 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
 
     const loginHandler = async () => {
         const loginResult = await login(userId!, userPassword!)
-        //console.log(loginResult)
-        if (loginResult) {
+        ////console.log(loginResult)
+        if (loginResult && connect != undefined) {
             setLoginSuccess(loginResult)
 
             setLoading(true)
@@ -108,7 +109,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 method: "GET"
             })
             const jsonResponse = await response.json()
-            console.log(jsonResponse)
+            //console.log(jsonResponse)
             
             setLoading(false)
             setSuccess(true)
@@ -125,9 +126,9 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                 setMusicUCIList(parsedUCIList)
                 //setMusicUCI(parsedUCIList[0])
                 
-                console.log(parsedMusicIdList)
-                console.log(parsedMusicNameList)
-                console.log(parsedUCIList)
+                //console.log(parsedMusicIdList)
+                //console.log(parsedMusicNameList)
+                //console.log(parsedUCIList)
             }
         } else {
             setSnackbarOpen(true);
@@ -148,7 +149,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             //setFile(file[0]);
             setFile(renamedFIle)
             setTargetURI(event.target.value);
-            console.log(URL.createObjectURL(renamedFIle));
+            //console.log(URL.createObjectURL(renamedFIle));
         }
     }
 
@@ -158,7 +159,7 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             let responsePing = await fetch("file/ping", {
                 method: "GET"
             });
-            console.log(responsePing)
+            //console.log(responsePing)
 
             setLoading(true)
             setSuccess(false)
@@ -176,15 +177,15 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
                     copyright: copyright,
                 }
             }
-            console.log(nftMetaData)
+            //console.log(nftMetaData)
 
-            console.log("Call mint ERC721")
+            //console.log("Call mint ERC721")
             if (isSelected) {
                 const [metaDataInfo, unlockableMetaDataInfo] = await mintERC721(connect, userId!, selectedFile!, unlockableContent, nftMetaData, copyright, musicUCI!);       
-                console.log("Download a file from Jubaesi server and send it to backup server")
+                //console.log("Download a file from Jubaesi server and send it to backup server")
                 const musicFile = await downloadHandler(address, musicId);    
                 
-                console.log("Packing files...")
+                //console.log("Packing files...")
                 const zipBlob = await zipFiles(musicId!, [selectedFile!, selectedFile!.type.slice(-3)], musicFile!, metaDataInfo, unlockableMetaDataInfo)
                 const zipFile = new File([zipBlob], musicId!+".zip")
                 const formData = new FormData()
@@ -203,108 +204,105 @@ const UploadAndMint = (props: FileProps): JSX.Element => {
             setLoading(false)
             setSuccess(true)
             
-            console.error(err);
-            console.log((err as Error).message)
+            ////console.error(err);
+            //console.log((err as Error).message)
             //statusMonitor.innerHTML = `Minting failed, ${(err as Error).message}`;
         }
     }
 
-    if (connect !== undefined) {
-        return (
-            <div>
-                {!loginSuccess ? (
-                    <Stack spacing={1} direction="column" sx={{ my:1 }}>
-                            <TextField id="Id" label="Id" variant="standard" onChange={userIdFieldHandler}/>
-                            <TextField id="Password" label="Password" variant="standard" type="password" onChange={userPasswordFieldHandler} />
-                            <Button variant="contained" component="label" onClick={loginHandler}> Get Data </Button>        
-                            <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleClose} message={"Login fail"} />
-                    </Stack>
-                    ) : ( success ? (
-                            <Stack spacing={1} direction="column" sx={{ my:1 }}>
-                                <Box sx={{ minWidth: 120 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel id="SelectMusicLabel">Select a music</InputLabel>
-                                        {
-                                            musicIdList ? (
-                                                <Select
-                                                    labelId="SelectMusic"
-                                                    id="SelectMusic"
-                                                    label="Select a music"
-                                                    variant="standard"
-                                                    defaultValue={''}
-                                                    value={musicId}
-                                                    onChange={musicIdFieldHandler}
-                                                >{
-                                                    musicIdList.map((musicId, idx) => (
-                                                        <MenuItem value={musicId} key={musicId} onClick={() => {
-                                                            setMusicUCI(musicUCIList![idx]),
-                                                            setMusicName(musicNameList![idx]),
-                                                            setTitle(musicNameList![idx])
-                                                        }}>{"["+ musicId +"] " + musicNameList![idx]}</MenuItem>                                                        
-                                                    ))                                                    
-                                                }</Select>): (
-                                                    <Typography align="center" gutterBottom>{"There is no music"}</Typography>
-                                                )
-                                        }                                    
-                                    </FormControl>
-                                </Box>
-                            </Stack>
-                        ) : (
-                            <Typography align="center" gutterBottom>
-                                <CircularProgress />
-                            </Typography>
-                        )
+    return (
+        <div>
+            {!loginSuccess ? (
+                <Stack spacing={1} direction="column" sx={{ my:1 }}>
+                        <TextField id="Id" label="Id" variant="standard" onChange={userIdFieldHandler}/>
+                        <TextField id="Password" label="Password" variant="standard" type="password" onChange={userPasswordFieldHandler} />
+                        <Button variant="contained" component="label" onClick={loginHandler}> Get Data </Button>        
+                        <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleClose} message={"Login fail. Please Checck Id, password, or account"} />
+                </Stack>
+                ) : ( success ? (
+                        <Stack spacing={1} direction="column" sx={{ my:1 }}>
+                            <Box sx={{ minWidth: 120 }}>
+                                <FormControl fullWidth>
+                                    <InputLabel id="SelectMusicLabel">Select a music</InputLabel>
+                                    {
+                                        musicIdList ? (
+                                            <Select
+                                                labelId="SelectMusic"
+                                                id="SelectMusic"
+                                                label="Select a music"
+                                                variant="standard"
+                                                defaultValue={''}
+                                                value={musicId}
+                                                onChange={musicIdFieldHandler}
+                                            >{
+                                                musicIdList.map((musicId, idx) => (
+                                                    <MenuItem value={musicId} key={musicId} onClick={() => {
+                                                        setMusicUCI(musicUCIList![idx]),
+                                                        setMusicName(musicNameList![idx]),
+                                                        setTitle(musicNameList![idx])
+                                                    }}>{"["+ musicId +"] " + musicNameList![idx]}</MenuItem>                                                        
+                                                ))                                                    
+                                            }</Select>): (
+                                                <Typography align="center" gutterBottom>{"There is no music"}</Typography>
+                                            )
+                                    }                                    
+                                </FormControl>
+                            </Box>
+                        </Stack>
+                    ) : (
+                        <Typography align="center" gutterBottom>
+                            <CircularProgress />
+                        </Typography>
                     )
-                }
-                <Stack spacing={1} direction="row" sx={{ my: 1}}>
-                    <Box textAlign='center'>
-                        <Button variant="contained" component="label" disabled={musicId==undefined || success==false}> {"Select \n Thumbnail"}
-                            <input type="file" name="file" hidden onChange={changeHandler} />
-                        </Button>
-                    </Box>
-                    <Button variant="contained" type="submit" disabled={musicId==undefined || success==false} onClick={
-                        () => submissionHandler(connect)
-                    }>{"Create"}
+                )
+            }
+            <Stack spacing={1} direction="row" sx={{ my: 1}}>
+                <Box textAlign='center'>
+                    <Button variant="contained" component="label" disabled={musicId==undefined || success==false}> {"Select \n Thumbnail"}
+                        <input type="file" name="file" hidden onChange={changeHandler} />
                     </Button>
-                </Stack> 
-                <Divider variant="middle" />
-                {isSelected ? (
-                    <Stack spacing={1} direction="column" sx={{ my:1 }}>
-                        {
-                            //<TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/> 
-                            //<TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>                        
-                        }
-                        <TextField id="FileType" label="File type" variant="standard" defaultValue={selectedFile!.type} disabled/>
-                            <FormControlLabel control={<Switch onChange= {() => { 
-                                isUnlockableContent(!unlockableContent)
-                                setCopyright("unlockable content")
-                            }} />} label="Unlockable content" />
-                        
-                        <FormControl disabled={unlockableContent} fullWidth>
-                            <InputLabel id="SelectCCLLabel">Select CCL</InputLabel> 
-                            <Select
-                                labelId="CCL"
-                                id="CCL"
-                                label="Select CCL"
-                                variant="standard"
-                                value={copyright}
-                                onChange={cclFieldHandler}                                    
-                            >{
-                                cclList.map((ccl, idx) => (
-                                    <MenuItem value={ccl} key={ccl}>{ccl}</MenuItem>
-                                ))
-                            }</Select>
-                        </FormControl>
-                        <TextField id="NFT-title" label="Title" variant="standard" value={musicName} disabled/>
-                    </Stack>
-                ) : (
-                    <Alert severity="info">Select a thumbnail</Alert>
-                )}
-                
-            </div>
-        )
-    }
-    return <Alert severity="error">Please connect wallet first.</Alert>
+                </Box>
+                <Button variant="contained" type="submit" disabled={musicId==undefined || success==false} onClick={
+                    () => submissionHandler(connect)
+                }>{"Create"}
+                </Button>
+            </Stack> 
+            <Divider variant="middle" />
+            {isSelected ? (
+                <Stack spacing={1} direction="column" sx={{ my:1 }}>
+                    {
+                        //<TextField id="FileName" label="File name" variant="standard" defaultValue={selectedFile!.name} disabled/> 
+                        //<TextField id="FileSize" label="File size (bytes)" variant="standard" defaultValue={selectedFile!.size} disabled/>                        
+                    }
+                    <TextField id="FileType" label="File type" variant="standard" defaultValue={selectedFile!.type} disabled/>
+                        <FormControlLabel control={<Switch onChange= {() => { 
+                            isUnlockableContent(!unlockableContent)
+                            setCopyright("unlockable content")
+                        }} />} label="Unlockable content" />
+                    
+                    <FormControl disabled={unlockableContent} fullWidth>
+                        <InputLabel id="SelectCCLLabel">Select CCL</InputLabel> 
+                        <Select
+                            labelId="CCL"
+                            id="CCL"
+                            label="Select CCL"
+                            variant="standard"
+                            value={copyright}
+                            onChange={cclFieldHandler}                                    
+                        >{
+                            cclList.map((ccl, idx) => (
+                                <MenuItem value={ccl} key={ccl}>{ccl}</MenuItem>
+                            ))
+                        }</Select>
+                    </FormControl>
+                    <TextField id="NFT-title" label="Title" variant="standard" value={musicName} disabled/>
+                </Stack>
+            ) : (
+                <Alert severity="info">Select a thumbnail</Alert>
+            )}
+            
+        </div>
+    )        
 }
 
 
@@ -321,7 +319,8 @@ const CreateLayout = (): JSX.Element => {
             handleClick()
             setSuccessCreate(false)
         }
-    }, [successCreate])
+        connect = new Connect(window.ethereum)
+    }, [successCreate, connect])
 
     const handleClick = () => {
         setSnackbarOpen(true);
